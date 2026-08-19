@@ -1,20 +1,32 @@
-import Link from "next/link";
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
 
 export function BottomNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const onRoster = pathname.startsWith("/roster");
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 flex border-t border-neutral-200 bg-white/95 backdrop-blur dark:border-neutral-800 dark:bg-black/95">
-      <Link
-        href="/"
-        className="flex-1 py-3 text-center text-sm font-medium text-neutral-700 dark:text-neutral-300"
+    <div className="sticky bottom-0 z-10 bg-bg border-t border-divider flex">
+      <button
+        type="button"
+        onClick={() => router.push("/")}
+        className={`flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-none border-none cursor-pointer font-heading font-semibold text-[13px] ${
+          onRoster ? "text-neutral-500" : "text-accent"
+        }`}
       >
-        Events
-      </Link>
-      <Link
-        href="/roster"
-        className="flex-1 py-3 text-center text-sm font-medium text-neutral-700 dark:text-neutral-300"
+        Runs
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push("/roster")}
+        className={`flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-none border-none border-l border-divider cursor-pointer font-heading font-semibold text-[13px] ${
+          onRoster ? "text-accent" : "text-neutral-500"
+        }`}
       >
-        Regulars
-      </Link>
-    </nav>
+        Roster
+      </button>
+    </div>
   );
 }

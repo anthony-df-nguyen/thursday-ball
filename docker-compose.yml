@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: thursday_ball
+    ports:
+      - "5432:5432"
+    volumes:
+      - thursday_ball_db:/var/lib/postgresql/data
+
+volumes:
+  thursday_ball_db:

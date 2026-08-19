@@ -14,6 +14,31 @@ async function requireUserId() {
   return userId;
 }
 
+// Headcount = confirmed attendees + confirmed plus-ones (PRD §4.6). A
+// plus-one's own invite_status is tracked independently of the attendee
+// who's bringing them, so it counts (or doesn't) on its own merits.
+async function headcount(eventId: string) {
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    with: { attendees: { with: { plusOnes: true } } },
+  });
+  if (!event) throw new Error("Event not found");
+  const count = event.attendees.reduce((sum, a) => {
+    const confirmedPlusOnes = a.plusOnes.filter(
+      (p) => p.inviteStatus === "confirmed",
+    ).length;
+    return sum + (a.inviteStatus === "confirmed" ? 1 : 0) + confirmedPlusOnes;
+  }, 0);
+  return { count, capacity: event.capacity };
+}
+
+async function assertRoomFor(eventId: string, additional: number) {
+  const { count, capacity } = await headcount(eventId);
+  if (count + additional > capacity) {
+    throw new Error(`Event is at capacity (${capacity}).`);
+  }
+}
+
 // --- Regulars (roster) ---
 
 export async function createRegular(formData: FormData) {
@@ -24,6 +49,20 @@ export async function createRegular(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
   await db.insert(regulars).values({ name, nickname, phone });
+  revalidatePath("/roster");
+}
+
+export async function updateRegular(regularId: string, formData: FormData) {
+  await requireUserId();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+  const nickname = String(formData.get("nickname") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim() || null;
+
+  await db
+    .update(regulars)
+    .set({ name, nickname, phone })
+    .where(eq(regulars.id, regularId));
   revalidatePath("/roster");
 }
 
@@ -90,6 +129,17 @@ export async function setInviteStatus(
   status: "invited" | "confirmed" | "declined",
 ) {
   await requireUserId();
+
+  if (status === "confirmed") {
+    const attendee = await db.query.eventAttendees.findFirst({
+      where: eq(eventAttendees.id, attendeeId),
+    });
+    if (!attendee) throw new Error("Attendee not found");
+    if (attendee.inviteStatus !== "confirmed") {
+      await assertRoomFor(eventId, 1);
+    }
+  }
+
   await db
     .update(eventAttendees)
     .set({ inviteStatus: status })
@@ -119,7 +169,48 @@ export async function addPlusOne(
 ) {
   await requireUserId();
   const name = String(formData.get("name") ?? "").trim() || null;
+
+  // New plus-ones always start as "invited" (not counted toward capacity
+  // yet), regardless of the inviting attendee's own status — see PRD note
+  // on tracking +1 response/attendance independently.
   await db.insert(plusOnes).values({ eventAttendeeId: attendeeId, name });
+  revalidatePath(`/events/${eventId}`);
+}
+
+export async function setPlusOneInviteStatus(
+  eventId: string,
+  plusOneId: string,
+  status: "invited" | "confirmed" | "declined",
+) {
+  await requireUserId();
+
+  if (status === "confirmed") {
+    const plusOne = await db.query.plusOnes.findFirst({
+      where: eq(plusOnes.id, plusOneId),
+    });
+    if (!plusOne) throw new Error("Plus-one not found");
+    if (plusOne.inviteStatus !== "confirmed") {
+      await assertRoomFor(eventId, 1);
+    }
+  }
+
+  await db
+    .update(plusOnes)
+    .set({ inviteStatus: status })
+    .where(eq(plusOnes.id, plusOneId));
+  revalidatePath(`/events/${eventId}`);
+}
+
+export async function setPlusOneName(
+  eventId: string,
+  plusOneId: string,
+  name: string,
+) {
+  await requireUserId();
+  await db
+    .update(plusOnes)
+    .set({ name: name.trim() || null })
+    .where(eq(plusOnes.id, plusOneId));
   revalidatePath(`/events/${eventId}`);
 }
 

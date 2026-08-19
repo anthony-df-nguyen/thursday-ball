@@ -112,6 +112,12 @@ export const plusOnes = pgTable("plus_ones", {
     .references(() => eventAttendees.id, { onDelete: "cascade" }),
   // Optional — a +1 doesn't need to be named.
   name: text("name"),
+  // Tracked independently of the inviting attendee's own invite_status —
+  // a +1 can be confirmed (or still awaiting a response) even if the
+  // regular who's bringing them has declined.
+  inviteStatus: text("invite_status", { enum: inviteStatusValues })
+    .notNull()
+    .default("invited"),
   paid: boolean("paid").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

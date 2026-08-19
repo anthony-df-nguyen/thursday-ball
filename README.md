@@ -13,7 +13,11 @@ Mobile-first web app for tracking who's playing pickup basketball each week. See
 
 ## Getting started
 
-1. **Create a Neon database** at [neon.tech](https://neon.tech) and copy the pooled connection string.
+1. **Database** — pick one:
+   - **Local (recommended for dev):** `docker compose up -d` starts a local Postgres 16 container (see `docker-compose.yml`). No further setup needed — the default `DATABASE_URL` in `.env.example` already points at it.
+   - **Neon (production, or if you'd rather not run Docker):** create a database at [neon.tech](https://neon.tech) and copy the pooled connection string.
+
+   `src/db/index.ts` picks the driver automatically: a `neon.tech` URL uses Neon's HTTP driver, anything else (like local Postgres) uses `node-postgres`.
 2. **Create a Google OAuth client** in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
    - Application type: Web application
    - Authorized redirect URI: `http://localhost:3000/api/auth/callback/google` (add your Vercel domain's equivalent once deployed)
@@ -21,7 +25,7 @@ Mobile-first web app for tracking who's playing pickup basketball each week. See
    ```bash
    cp .env.example .env.local
    ```
-   - `DATABASE_URL` — from Neon
+   - `DATABASE_URL` — already set for local Docker Postgres; swap in your Neon string for production
    - `ORGANIZER_EMAILS` — comma-separated Gmail addresses for the 3 organizers
    - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — from the Google OAuth client
    - `AUTH_SECRET` — generate with `npx auth secret`
@@ -29,7 +33,7 @@ Mobile-first web app for tracking who's playing pickup basketball each week. See
    ```bash
    npm install
    ```
-5. Push the schema to your Neon database:
+5. Push the schema to your database:
    ```bash
    npm run db:push
    ```
