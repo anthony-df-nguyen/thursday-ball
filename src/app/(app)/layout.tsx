@@ -16,7 +16,11 @@ export default async function AppLayout({
 
   return (
     <>
-      <AppHeader userName={session?.user?.name} signOutAction={signOutAction} />
+      <AppHeader
+        userName={session?.user?.name}
+        userImage={session?.user?.image}
+        signOutAction={signOutAction}
+      />
       <div className="flex-1 flex flex-col">{children}</div>
       <BottomNav />
     </>

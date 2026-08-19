@@ -17,6 +17,13 @@ export default async function RunsPage() {
         <NewRunForm createEvent={createEvent} />
       </div>
 
+      <Link
+        href="/help"
+        className="inline-block mt-1.5 text-[13px] font-semibold text-accent no-underline"
+      >
+        How to use this app →
+      </Link>
+
       <div className="mt-4" />
 
       {allEvents.map((event) => {

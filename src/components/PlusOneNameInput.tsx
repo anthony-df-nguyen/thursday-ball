@@ -25,7 +25,7 @@ export function PlusOneNameInput({
         });
       }}
       placeholder="name (optional)"
-      className="flex-1 min-w-0 border-none bg-none font-[inherit] text-sm text-text py-1.5 px-1"
+      className="flex-1 min-w-0 border-none bg-none font-[inherit] text-base text-text py-1.5 px-1"
     />
   );
 }

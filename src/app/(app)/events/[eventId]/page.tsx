@@ -1,14 +1,9 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { StatusChip } from "@/components/StatusChip";
-import { PaidCheckbox } from "@/components/PaidCheckbox";
-import { RemoveButton } from "@/components/RemoveButton";
-import { AddPlusOneButton } from "@/components/AddPlusOneButton";
-import { PlusOneNameInput } from "@/components/PlusOneNameInput";
+import { AttendeeList } from "@/components/AttendeeList";
 import { AddPlayersSheet } from "@/components/AddPlayersSheet";
 import { EventMenu } from "@/components/EventMenu";
 import { formatRunDateLong } from "@/lib/dates";
-import type { InviteStatus } from "@/db/schema";
 import {
   addAdHocAttendee,
   addPlusOne,
@@ -23,8 +18,6 @@ import {
   setPlusOnePaid,
 } from "../../actions";
 
-const STATUS_ORDER: Record<InviteStatus, number> = { confirmed: 0, invited: 1, declined: 2 };
-
 export default async function EventDetailPage({
   params,
 }: PageProps<"/events/[eventId]">) {
@@ -34,6 +27,13 @@ export default async function EventDetailPage({
     where: (events, { eq }) => eq(events.id, eventId),
     with: {
       attendees: {
+        // Confirmed-first is the helpful order to land on when the page
+        // is freshly loaded. Keeping the list from re-sorting live as
+        // status changes happen is handled client-side in AttendeeList.
+        orderBy: (attendees, { asc, sql }) => [
+          sql`case ${attendees.inviteStatus} when 'confirmed' then 0 when 'invited' then 1 else 2 end`,
+          asc(attendees.createdAt),
+        ],
         with: { plusOnes: true, regular: true },
       },
     },
@@ -77,10 +77,6 @@ export default async function EventDetailPage({
     );
   }, 0);
   const allPaid = totalPeople > 0 && paidCount === totalPeople;
-
-  const rows = [...event.attendees].sort(
-    (a, b) => STATUS_ORDER[a.inviteStatus] - STATUS_ORDER[b.inviteStatus],
-  );
 
   return (
     <div className="flex-1 px-4 pt-5 pb-6">
@@ -132,93 +128,19 @@ export default async function EventDetailPage({
         <span>Paid</span>
       </div>
 
-      {rows.map((attendee) => {
-        const confirmed = attendee.inviteStatus === "confirmed";
-        const name = attendee.regular?.name ?? attendee.displayName ?? "Unnamed";
-
-        return (
-          <div key={attendee.id} className="border-b border-divider">
-            <div className="flex items-center gap-1.5 min-h-[54px]">
-              <StatusChip
-                eventId={event.id}
-                attendeeId={attendee.id}
-                status={attendee.inviteStatus}
-                atCapacity={atCapacity}
-                setInviteStatus={setInviteStatus}
-              />
-              <span
-                className={`font-semibold text-xs flex-1 min-w-0 ${
-                  attendee.inviteStatus === "declined" ? "text-neutral-500" : "text-text"
-                }`}
-              >
-                {name}
-              </span>
-              <AddPlusOneButton
-                eventId={event.id}
-                attendeeId={attendee.id}
-                disabled={false}
-                addPlusOne={addPlusOne}
-              />
-              <RemoveButton
-                ariaLabel="Remove from run"
-                eventId={event.id}
-                id={attendee.id}
-                remove={removeAttendee}
-              />
-              {confirmed ? (
-                <PaidCheckbox
-                  eventId={event.id}
-                  id={attendee.id}
-                  paid={attendee.paid}
-                  ariaLabel="Toggle paid"
-                  setPaid={setAttendeePaid}
-                />
-              ) : (
-                <span className="w-11 text-center text-xs text-neutral-700">—</span>
-              )}
-            </div>
-
-            {attendee.plusOnes.map((plusOne) => {
-              const plusOneConfirmed = plusOne.inviteStatus === "confirmed";
-              return (
-                <div key={plusOne.id} className="flex items-center gap-1.5 min-h-12 pl-2 border-t border-divider">
-                  <StatusChip
-                    eventId={event.id}
-                    attendeeId={plusOne.id}
-                    status={plusOne.inviteStatus}
-                    atCapacity={atCapacity}
-                    setInviteStatus={setPlusOneInviteStatus}
-                  />
-                  <span className="text-[10px] tracking-[0.06em] text-accent font-semibold flex-none">+1</span>
-                  <PlusOneNameInput
-                    eventId={event.id}
-                    plusOneId={plusOne.id}
-                    name={plusOne.name}
-                    setPlusOneName={setPlusOneName}
-                  />
-                  <RemoveButton
-                    ariaLabel="Remove +1"
-                    eventId={event.id}
-                    id={plusOne.id}
-                    remove={removePlusOne}
-                  />
-                  {plusOneConfirmed ? (
-                    <PaidCheckbox
-                      eventId={event.id}
-                      id={plusOne.id}
-                      paid={plusOne.paid}
-                      ariaLabel="Toggle +1 paid"
-                      setPaid={setPlusOnePaid}
-                    />
-                  ) : (
-                    <span className="w-11 text-center text-xs text-neutral-700">—</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+      <AttendeeList
+        eventId={event.id}
+        attendees={event.attendees}
+        atCapacity={atCapacity}
+        setInviteStatus={setInviteStatus}
+        setPlusOneInviteStatus={setPlusOneInviteStatus}
+        addPlusOne={addPlusOne}
+        removeAttendee={removeAttendee}
+        removePlusOne={removePlusOne}
+        setAttendeePaid={setAttendeePaid}
+        setPlusOnePaid={setPlusOnePaid}
+        setPlusOneName={setPlusOneName}
+      />
     </div>
   );
 }
