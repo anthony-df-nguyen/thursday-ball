@@ -9,6 +9,7 @@ Mobile-first web app for tracking who's playing pickup basketball each week. See
 - **Drizzle ORM** + **Neon** serverless Postgres
 - Deploys to **Vercel**
 
+
 > Note: this project is on Next.js 16, which renamed Middleware to **Proxy** (`src/proxy.ts`, same functionality/API as middleware). If anything looks unfamiliar versus older Next.js docs, check `node_modules/next/dist/docs` or the [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16).
 
 ## Getting started
