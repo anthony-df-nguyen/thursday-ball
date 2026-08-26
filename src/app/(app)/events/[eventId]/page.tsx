@@ -100,9 +100,6 @@ export default async function EventDetailPage({
           <div className="text-[10px] tracking-[0.1em] uppercase text-accent font-semibold">Open run</div>
           <h2 className="text-xl mt-0.5 mb-4 font-medium">
             {formatRunDateLong(event.date).date}{" "}
-            <span className="text-base font-normal text-neutral-400">
-              {formatRunDateLong(event.date).weekday}
-            </span>
           </h2>
         </div>
         <EventMenu
@@ -113,7 +110,7 @@ export default async function EventDetailPage({
         />
       </div>
 
-      <div className="flex justify-between items-baseline my-4">
+      <div className="flex justify-between items-baseline my-2">
         <span className="font-heading  text-base">
           {headcount} / {event.capacity} in
         </span>
@@ -124,7 +121,7 @@ export default async function EventDetailPage({
       <HeadcountBar headcount={headcount} capacity={event.capacity} />
       {atCapacity && (
         <p className="text-xs text-accent-300 mt-1.5 mb-0">
-          At capacity — confirms and +1s are blocked.
+          At capacity — New confirms are blocked.
         </p>
       )}
 
