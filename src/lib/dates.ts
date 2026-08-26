@@ -6,17 +6,23 @@ export function nextThursdayISO() {
 }
 
 export function formatRunDate(iso: string) {
-  return new Date(iso + "T12:00").toLocaleDateString("en-US", {
-    weekday: "short",
+  const d = new Date(iso + "T12:00");
+  const date = d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  return { date, weekday };
 }
 
 export function formatRunDateLong(iso: string) {
-  return new Date(iso + "T12:00").toLocaleDateString("en-US", {
-    weekday: "long",
+  const d = new Date(iso + "T12:00");
+  const date = d.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
+    year: "numeric",
   });
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  return { date, weekday };
 }

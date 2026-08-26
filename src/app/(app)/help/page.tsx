@@ -7,7 +7,7 @@ const steps = [
   },
   {
     title: "2. Build the invite list",
-    body: 'Open the run, then add people from the Roster or type a one-off name. Everyone starts as "invited" until you hear back from them.',
+    body: 'Open the run, then add people from the Roster or type a one-off name. Everyone starts as "Asked" until you hear back from them. If someone has a phone number saved on the Roster, tap the text icon next to their name to open a pre-filled text invite.',
   },
   {
     title: "3. Track responses",
@@ -62,7 +62,9 @@ export default function HelpPage() {
         <p className="text-[13px] text-neutral-400 mt-1 leading-relaxed">
           The Roster tab is your reusable list of regulars, organizers included,
           so you&apos;re not retyping names every week. Add someone once there
-          and they&apos;ll show up in the picker for every future run.
+          and they&apos;ll show up in the picker for every future run. Save a
+          phone number for them and a text icon shows up next to their name
+          on runs, so you can text an invite straight from the app.
         </p>
       </div>
     </div>

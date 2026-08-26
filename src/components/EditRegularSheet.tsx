@@ -30,10 +30,10 @@ export function EditRegularSheet({
         onClick={() => setOpen(true)}
         className="w-full flex  items-center gap-2.5 bg-none border-b border-gray-600 font-[inherit] text-text cursor-pointer text-left py-3"
       >
-        <span className="flex-1 font-semibold text-[15px] min-w-0">
-          <span>{regular.name}</span>
+        <span className="flex-1 font-semibold text-[15px] min-w-0 flex items-baseline gap-1.5">
+          <span className="truncate">{regular.name}</span>
           {regular.nickname && (
-            <span className="ml-1.5 font-normal text-[13px] text-neutral-500">
+            <span className="flex-none font-normal text-[13px] text-neutral-500">
               &ldquo;{regular.nickname}&rdquo;
             </span>
           )}
@@ -82,6 +82,7 @@ export function EditRegularSheet({
                 name="name"
                 placeholder="Name"
                 defaultValue={regular.name}
+                maxLength={40}
                 required
               />
               <input

@@ -19,6 +19,7 @@ export function PlusOneNameInput({
     <div className="flex-1 min-w-0 overflow-hidden">
       <input
         defaultValue={name ?? ""}
+        maxLength={40}
         onBlur={(e) => {
           const value = e.target.value;
           startTransition(() => {

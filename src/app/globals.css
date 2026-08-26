@@ -54,32 +54,34 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-}
+@layer base {
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-heading);
-  font-weight: 500;
-  letter-spacing: -0.015em;
-  line-height: 1.12;
-  margin: 0;
-}
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+    margin: 0;
+  }
 
-a {
-  color: var(--color-accent);
-  text-underline-offset: 3px;
-}
-a:hover {
-  color: var(--color-accent-300);
+  a {
+    color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    color: var(--color-accent-300);
+  }
 }
 
 input::placeholder {
@@ -109,7 +111,7 @@ input::placeholder {
 
   /* — buttons — */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer no-underline font-heading font-medium text-sm leading-tight text-text bg-transparent border border-transparent rounded-md;
+    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer no-underline font-heading font-bold text-sm leading-tight text-text bg-transparent border border-transparent rounded-md;
     padding: var(--space-2) calc(var(--space-3) * 1.2);
   }
   .btn:disabled {
@@ -123,6 +125,15 @@ input::placeholder {
   }
   .btn-primary:active {
     background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  .btn-filled {
+    @apply text-white bg-accent border-accent;
+  }
+  .btn-filled:hover {
+    background: color-mix(in srgb, var(--color-accent) 88%, black);
+  }
+  .btn-filled:active {
+    background: color-mix(in srgb, var(--color-accent) 78%, black);
   }
   .btn-secondary {
     @apply border-divider;
@@ -178,6 +189,9 @@ input::placeholder {
   }
   .tag-accent {
     @apply bg-accent-800 text-accent-100;
+  }
+  .tag-success {
+    @apply bg-green-700 text-green-100;
   }
   .tag-outline {
     @apply border border-accent text-accent;

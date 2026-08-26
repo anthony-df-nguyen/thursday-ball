@@ -41,9 +41,12 @@ async function assertRoomFor(eventId: string, additional: number) {
 
 // --- Regulars (roster) ---
 
+// Keeps names from overflowing and clipping adjacent buttons in the UI.
+const MAX_NAME_LENGTH = 40;
+
 export async function createRegular(formData: FormData) {
   await requireUserId();
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, MAX_NAME_LENGTH);
   if (!name) return;
   const nickname = String(formData.get("nickname") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
@@ -54,7 +57,7 @@ export async function createRegular(formData: FormData) {
 
 export async function updateRegular(regularId: string, formData: FormData) {
   await requireUserId();
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, MAX_NAME_LENGTH);
   if (!name) return;
   const nickname = String(formData.get("nickname") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
@@ -107,7 +110,7 @@ export async function addRegularToEvent(eventId: string, regularId: string) {
 
 export async function addAdHocAttendee(eventId: string, formData: FormData) {
   await requireUserId();
-  const displayName = String(formData.get("displayName") ?? "").trim();
+  const displayName = String(formData.get("displayName") ?? "").trim().slice(0, MAX_NAME_LENGTH);
   if (!displayName) return;
   await db.insert(eventAttendees).values({
     eventId,
@@ -168,7 +171,7 @@ export async function addPlusOne(
   formData: FormData,
 ) {
   await requireUserId();
-  const name = String(formData.get("name") ?? "").trim() || null;
+  const name = String(formData.get("name") ?? "").trim().slice(0, MAX_NAME_LENGTH) || null;
 
   // New plus-ones always start as "invited" (not counted toward capacity
   // yet), regardless of the inviting attendee's own status — see PRD note
@@ -209,7 +212,7 @@ export async function setPlusOneName(
   await requireUserId();
   await db
     .update(plusOnes)
-    .set({ name: name.trim() || null })
+    .set({ name: name.trim().slice(0, MAX_NAME_LENGTH) || null })
     .where(eq(plusOnes.id, plusOneId));
   revalidatePath(`/events/${eventId}`);
 }

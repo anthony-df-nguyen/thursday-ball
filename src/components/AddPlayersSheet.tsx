@@ -23,10 +23,10 @@ export function AddPlayersSheet({
     <>
       <button
         type="button"
-        className="btn btn-primary btn-block text-[15px] mt-4"
+        className="btn btn-filled btn-block text-[15px] mt-4"
         onClick={() => setOpen(true)}
       >
-        Add players
+        Add Players
       </button>
 
       {open && (
@@ -52,6 +52,7 @@ export function AddPlayersSheet({
                 className="input min-h-[36px]"
                 placeholder="Add a non-regular person"
                 value={oneOff}
+                maxLength={40}
                 onChange={(e) => setOneOff(e.target.value)}
               />
               <button
@@ -76,7 +77,7 @@ export function AddPlayersSheet({
                 onClick={() => startTransition(() => addRegularToEvent(eventId, r.id))}
                 className="w-full flex items-center gap-2.5 min-h-[52px] bg-none border-none border-t border-divider font-[inherit] text-[15px] font-semibold text-text cursor-pointer text-left px-0.5"
               >
-                <span className="flex-1 min-w-0">{r.name}</span>
+                <span className="flex-1 min-w-0 truncate">{r.name}</span>
                 {r.isOrganizer && <span className="tag tag-outline">ORG</span>}
                 <span className="text-accent font-semibold text-lg">+</span>
               </button>

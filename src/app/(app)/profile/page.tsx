@@ -1,10 +1,12 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 
 function initialsOf(name: string | null | undefined) {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
-  const chars = parts.length > 1 ? [parts[0][0], parts[parts.length - 1][0]] : [parts[0][0]];
+  const chars =
+    parts.length > 1
+      ? [parts[0][0], parts[parts.length - 1][0]]
+      : [parts[0][0]];
   return chars.join("").toUpperCase();
 }
 
@@ -14,7 +16,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex-1 px-4 pt-5 pb-6">
-      <h2 className="text-[26px] font-medium">My Profile</h2>
+      <h2 className="text-2xl font-medium">My Profile</h2>
 
       <div className="rounded-lg bg-surface shadow-sm p-4 mt-4 flex items-center gap-3.5">
         {user?.image ? (
@@ -33,16 +35,11 @@ export default async function ProfilePage() {
           <div className="font-heading font-medium text-[16px]">
             {user?.name ?? "Unknown"}
           </div>
-          <div className="text-[13px] text-neutral-400 mt-0.5">{user?.email}</div>
+          <div className="text-[13px] text-neutral-400 mt-0.5">
+            {user?.email}
+          </div>
         </div>
       </div>
-
-      <Link
-        href="/"
-        className="inline-block mt-5 text-[13px] font-semibold text-accent no-underline"
-      >
-        ← Back to Runs
-      </Link>
     </div>
   );
 }

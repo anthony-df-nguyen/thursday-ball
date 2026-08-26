@@ -14,7 +14,7 @@ export function NewRunForm({
     <>
       <button
         type="button"
-        className="btn btn-primary min-h-11 text-sm"
+        className="btn btn-filled min-h-11 text-sm"
         onClick={() => setOpen(true)}
       >
         + New Run
@@ -30,7 +30,7 @@ export function NewRunForm({
             className="w-full max-w-[430px] bg-surface rounded-t-lg shadow-lg px-4 pt-4 pb-7"
           >
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">New run</h3>
+              <h3 className="text-lg font-medium">Add a New Run</h3>
               <button type="button" className="btn btn-ghost min-h-11" onClick={() => setOpen(false)}>
                 Cancel
               </button>
@@ -47,7 +47,7 @@ export function NewRunForm({
                 required
                 defaultValue={nextThursdayISO()}
               />
-              <button type="submit" className="btn btn-primary btn-block min-h-12">
+              <button type="submit" className="btn btn-filled btn-block min-h-12">
                 Create Run
               </button>
             </form>

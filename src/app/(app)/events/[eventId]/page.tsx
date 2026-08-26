@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { AttendeeList } from "@/components/AttendeeList";
 import { AddPlayersSheet } from "@/components/AddPlayersSheet";
 import { EventMenu } from "@/components/EventMenu";
+import { HeadcountBar } from "@/components/HeadcountBar";
 import { formatRunDateLong } from "@/lib/dates";
 import {
   addAdHocAttendee,
@@ -97,7 +98,12 @@ export default async function EventDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <div className="text-[10px] tracking-[0.1em] uppercase text-accent font-semibold">Open run</div>
-          <h2 className="text-xl mt-0.5 mb-4 font-medium">{formatRunDateLong(event.date)}</h2>
+          <h2 className="text-xl mt-0.5 mb-4 font-medium">
+            {formatRunDateLong(event.date).date}{" "}
+            <span className="text-base font-normal text-neutral-400">
+              {formatRunDateLong(event.date).weekday}
+            </span>
+          </h2>
         </div>
         <EventMenu
           eventId={event.id}
@@ -115,11 +121,7 @@ export default async function EventDetailPage({
           {totalPeople ? `${paidCount} of ${totalPeople} paid` : "no one confirmed yet"}
         </span>
       </div>
-      <div className="flex gap-0.5 rounded-sm overflow-hidden">
-        {Array.from({ length: event.capacity }, (_, i) => (
-          <span key={i} className={`flex-1 h-2 ${i < headcount ? "bg-accent" : "bg-neutral-800"}`} />
-        ))}
-      </div>
+      <HeadcountBar headcount={headcount} capacity={event.capacity} />
       {atCapacity && (
         <p className="text-xs text-accent-300 mt-1.5 mb-0">
           At capacity — confirms and +1s are blocked.

@@ -130,7 +130,7 @@ export function AttendeeList({
 
         return (
           <div key={attendee.id} className="border-b border-divider">
-            <div className="flex items-center gap-1 min-h-[54px]">
+            <div className="flex items-center gap-2 min-h-[54px]">
               <StatusChip
                 eventId={eventId}
                 attendeeId={attendee.id}
@@ -139,7 +139,7 @@ export function AttendeeList({
                 setInviteStatus={setInviteStatus}
               />
               <span
-                className={`font-semibold text-xs flex-1 min-w-0 ${
+                className={`font-semibold text-xs flex-1 min-w-0 truncate ${
                   attendee.inviteStatus === "declined" ? "text-neutral-500" : "text-text"
                 }`}
               >

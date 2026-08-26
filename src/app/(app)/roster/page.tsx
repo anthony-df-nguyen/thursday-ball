@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { createRegular, deleteRegular, updateRegular } from "../actions";
 import { EditRegularSheet } from "@/components/EditRegularSheet";
+import { InfoTooltip } from "@/components/InfoTooltip";
 
 export default async function RosterPage() {
   const allRegulars = await db.query.regulars.findMany({
@@ -9,14 +10,24 @@ export default async function RosterPage() {
 
   return (
     <div className="flex-1 px-4 pt-5 pb-6">
-      <h2 className="text-[26px] font-medium">Roster</h2>
-      <p className="text-[13px] text-neutral-400 mt-1 mb-3.5">
-        {allRegulars.length} people. Organizers can&apos;t be removed.
-      </p>
+      <div className="flex items-baseline gap-2">
+        {" "}
+        <h2 className="text-2xl font-medium">
+          Roster
+        </h2>
+        <InfoTooltip text="Regulars are quick to add to future runs — include a phone number to text them easily. No need to add someone here first; you can invite one-off names directly to a run." />
+      </div>
 
-      <form action={createRegular} className="flex gap-2">
-        <input className="input min-h-[36px]" type="text" name="name" placeholder="Add a name" required />
-        <button type="submit" className="btn btn-primary min-h-[36px] flex-none">
+      <form action={createRegular} className="mt-6 flex gap-2">
+        <input
+          className="input min-h-[36px]"
+          type="text"
+          name="name"
+          placeholder="Add a regular"
+          maxLength={40}
+          required
+        />
+        <button type="submit" className="btn btn-filled min-h-[36px] flex-none">
           Add
         </button>
       </form>

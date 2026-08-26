@@ -21,7 +21,7 @@ export function BottomNav() {
       <button
         type="button"
         onClick={() => router.push("/roster")}
-        className={`flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-none border-none border-l border-divider cursor-pointer font-heading font-semibold text-[13px] ${
+        className={`flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-none border-0 border-l border-divider cursor-pointer font-heading font-semibold text-[13px] ${
           onRoster ? "text-accent" : "text-neutral-500"
         }`}
       >
