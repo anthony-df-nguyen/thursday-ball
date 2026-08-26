@@ -27,19 +27,33 @@ export default async function EventDetailPage({
     where: (events, { eq }) => eq(events.id, eventId),
     with: {
       attendees: {
-        // Confirmed-first is the helpful order to land on when the page
-        // is freshly loaded. Keeping the list from re-sorting live as
-        // status changes happen is handled client-side in AttendeeList.
-        orderBy: (attendees, { asc, sql }) => [
+        // Confirmed-first is the helpful order to land on when the page is
+        // freshly loaded. The alphabetical-within-status tiebreak needs the
+        // joined regular's name, which isn't reliably referenceable from
+        // this relational orderBy, so it's applied in JS below instead.
+        // Keeping the list from re-sorting live as status changes happen is
+        // handled client-side in AttendeeList.
+        orderBy: (attendees, { sql }) => [
           sql`case ${attendees.inviteStatus} when 'confirmed' then 0 when 'invited' then 1 else 2 end`,
-          asc(attendees.createdAt),
         ],
-        with: { plusOnes: true, regular: true },
+        with: {
+          plusOnes: { orderBy: (plusOnes, { asc }) => asc(plusOnes.createdAt) },
+          regular: true,
+        },
       },
     },
   });
 
   if (!event) notFound();
+
+  const statusRank = { confirmed: 0, invited: 1, declined: 2 } as const;
+  event.attendees.sort((a, b) => {
+    const rankDiff = statusRank[a.inviteStatus] - statusRank[b.inviteStatus];
+    if (rankDiff !== 0) return rankDiff;
+    const nameA = a.regular?.name ?? a.displayName ?? "";
+    const nameB = b.regular?.name ?? b.displayName ?? "";
+    return nameA.localeCompare(nameB);
+  });
 
   const allRegulars = await db.query.regulars.findMany({
     orderBy: (regulars, { asc }) => [asc(regulars.name)],

@@ -6,6 +6,7 @@ import { PaidCheckbox } from "@/components/PaidCheckbox";
 import { RemoveButton } from "@/components/RemoveButton";
 import { AddPlusOneButton } from "@/components/AddPlusOneButton";
 import { PlusOneNameInput } from "@/components/PlusOneNameInput";
+import { TextInviteButton } from "@/components/TextInviteButton";
 import type { InviteStatus } from "@/db/schema";
 
 type PlusOne = {
@@ -20,7 +21,7 @@ type Attendee = {
   displayName: string | null;
   inviteStatus: InviteStatus;
   paid: boolean;
-  regular: { name: string } | null;
+  regular: { name: string; phone: string | null } | null;
   plusOnes: PlusOne[];
 };
 
@@ -76,24 +77,50 @@ export function AttendeeList({
   // Freeze on-screen order across live status toggles. The order is set
   // from the server-sorted list on first render (and whenever someone is
   // added/removed) but never reshuffles just because a status changed —
-  // that only happens again on a full page reload.
+  // that only happens again on a full page reload. Same treatment applies
+  // to each attendee's +1s (keyed per-attendee since +1s move with their
+  // attendee, not independently).
+  const freezeOrder = (currentIds: string[], prevOrder: string[]) => {
+    const knownIds = new Set(currentIds);
+    const nextOrder = prevOrder.filter((id) => knownIds.has(id));
+    for (const id of currentIds) {
+      if (!nextOrder.includes(id)) nextOrder.push(id);
+    }
+    return nextOrder;
+  };
+
   const ids = attendees.map((a) => a.id);
   const idsKey = ids.join(",");
   const [order, setOrder] = useState(ids);
   const [orderedIdsKey, setOrderedIdsKey] = useState(idsKey);
   if (idsKey !== orderedIdsKey) {
-    const knownIds = new Set(ids);
-    const nextOrder = order.filter((id) => knownIds.has(id));
-    for (const id of ids) {
-      if (!nextOrder.includes(id)) nextOrder.push(id);
-    }
-    setOrder(nextOrder);
+    setOrder(freezeOrder(ids, order));
     setOrderedIdsKey(idsKey);
   }
   const byId = new Map(attendees.map((a) => [a.id, a]));
   const rows = order
     .map((id) => byId.get(id))
     .filter((a): a is Attendee => a !== undefined);
+
+  const plusOneIdsKey = attendees
+    .map((a) => `${a.id}:${a.plusOnes.map((p) => p.id).join(",")}`)
+    .join("|");
+  const [plusOneOrder, setPlusOneOrder] = useState<Record<string, string[]>>(
+    () => Object.fromEntries(attendees.map((a) => [a.id, a.plusOnes.map((p) => p.id)])),
+  );
+  const [orderedPlusOneIdsKey, setOrderedPlusOneIdsKey] = useState(plusOneIdsKey);
+  if (plusOneIdsKey !== orderedPlusOneIdsKey) {
+    const nextPlusOneOrder: Record<string, string[]> = {};
+    for (const attendee of attendees) {
+      const currentIds = attendee.plusOnes.map((p) => p.id);
+      nextPlusOneOrder[attendee.id] = freezeOrder(
+        currentIds,
+        plusOneOrder[attendee.id] ?? [],
+      );
+    }
+    setPlusOneOrder(nextPlusOneOrder);
+    setOrderedPlusOneIdsKey(plusOneIdsKey);
+  }
 
   return (
     <>
@@ -103,7 +130,7 @@ export function AttendeeList({
 
         return (
           <div key={attendee.id} className="border-b border-divider">
-            <div className="flex items-center gap-1.5 min-h-[54px]">
+            <div className="flex items-center gap-1 min-h-[54px]">
               <StatusChip
                 eventId={eventId}
                 attendeeId={attendee.id}
@@ -118,6 +145,9 @@ export function AttendeeList({
               >
                 {name}
               </span>
+              {attendee.regular?.phone && (
+                <TextInviteButton phone={attendee.regular.phone} />
+              )}
               <AddPlusOneButton
                 eventId={eventId}
                 attendeeId={attendee.id}
@@ -139,14 +169,19 @@ export function AttendeeList({
                   setPaid={setAttendeePaid}
                 />
               ) : (
-                <span className="w-11 text-center text-xs text-neutral-700">—</span>
+                <span className="w-6 text-center text-xs text-neutral-700">—</span>
               )}
             </div>
 
-            {attendee.plusOnes.map((plusOne) => {
+            {(() => {
+              const plusOneById = new Map(attendee.plusOnes.map((p) => [p.id, p]));
+              const orderedPlusOnes = (plusOneOrder[attendee.id] ?? [])
+                .map((id) => plusOneById.get(id))
+                .filter((p): p is PlusOne => p !== undefined);
+              return orderedPlusOnes.map((plusOne) => {
               const plusOneConfirmed = plusOne.inviteStatus === "confirmed";
               return (
-                <div key={plusOne.id} className="flex items-center gap-1.5 min-h-12 pl-2 border-t border-divider">
+                <div key={plusOne.id} className="flex items-center gap-1 min-h-12 pl-2 border-t border-divider">
                   <StatusChip
                     eventId={eventId}
                     attendeeId={plusOne.id}
@@ -176,11 +211,12 @@ export function AttendeeList({
                       setPaid={setPlusOnePaid}
                     />
                   ) : (
-                    <span className="w-11 text-center text-xs text-neutral-700">—</span>
+                    <span className="w-6 text-center text-xs text-neutral-700">—</span>
                   )}
                 </div>
               );
-            })}
+              });
+            })()}
           </div>
         );
       })}

@@ -47,7 +47,7 @@ export function StatusChip({
           setInviteStatus(eventId, attendeeId, next);
         });
       }}
-      className={`flex flex-none min-w-[58px] h-[26px] items-center justify-center rounded-sm border px-2 font-heading text-[10px] font-semibold tracking-[0.06em] ${
+      className={`flex flex-none min-w-10 h-5 items-center justify-center rounded-sm border px-1.5 font-heading text-[9px] font-bold tracking-[0.04em] ${
         pending ? "cursor-default opacity-60" : "cursor-pointer opacity-100"
       } ${chip.className}`}
     >

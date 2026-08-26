@@ -28,16 +28,26 @@ export function EditRegularSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2.5 bg-none border-b border-gray-600 font-[inherit] text-text cursor-pointer text-left py-3"
+        className="w-full flex  items-center gap-2.5 bg-none border-b border-gray-600 font-[inherit] text-text cursor-pointer text-left py-3"
       >
         <span className="flex-1 font-semibold text-[15px] min-w-0">
-          {regular.name}
+          <span>{regular.name}</span>
           {regular.nickname && (
             <span className="ml-1.5 font-normal text-[13px] text-neutral-500">
               &ldquo;{regular.nickname}&rdquo;
             </span>
           )}
         </span>
+        {regular.phone && (
+          <svg
+            aria-label="Phone number on file"
+            className="size-3 text-neutral-500 flex-none"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.36 11.36 0 0 0 3.56.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.56 1 1 0 0 1-.25 1.01l-2.2 2.22Z" />
+          </svg>
+        )}
         {isOrganizer && <span className="tag tag-outline">ORG</span>}
       </button>
 
