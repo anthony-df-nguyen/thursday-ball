@@ -161,6 +161,16 @@ input::placeholder {
   .input:focus-visible {
     @apply border-accent outline-offset-0;
   }
+  /* iOS Safari sizes date/month/time controls by their internal content
+     (calendar icon + spinner) and ignores width/max-width unless appearance
+     is reset — otherwise they overflow their flex/grid container. */
+  input.input[type="date"],
+  input.input[type="month"],
+  input.input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    overflow: hidden;
+  }
 
   /* — tags — */
   .tag {
