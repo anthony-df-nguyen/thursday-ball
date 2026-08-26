@@ -1,9 +1,14 @@
 import { FaRegMessage } from "react-icons/fa6";
+import { DEFAULT_INVITE_MESSAGE } from "@/lib/inviteMessage";
 
-const INVITE_MESSAGE = "Are you free to ball this Thursday?";
-
-export function TextInviteButton({ phone }: { phone: string }) {
-  const href = `sms:${phone}?&body=${encodeURIComponent(INVITE_MESSAGE)}`;
+export function TextInviteButton({
+  phone,
+  message,
+}: {
+  phone: string;
+  message?: string | null;
+}) {
+  const href = `sms:${phone}?&body=${encodeURIComponent(message || DEFAULT_INVITE_MESSAGE)}`;
 
   return (
     <a

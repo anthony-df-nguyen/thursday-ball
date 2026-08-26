@@ -31,6 +31,10 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name"),
   image: text("image"),
+  // Null falls back to the app-wide default invite text (see
+  // src/lib/inviteMessage.ts). Lets each organizer customize the message
+  // sent via TextInviteButton without affecting the other organizers.
+  defaultInviteMessage: text("default_invite_message"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

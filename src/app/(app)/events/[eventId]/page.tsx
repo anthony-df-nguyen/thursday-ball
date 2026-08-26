@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { AttendeeList } from "@/components/AttendeeList";
 import { AddPlayersSheet } from "@/components/AddPlayersSheet";
@@ -23,6 +24,13 @@ export default async function EventDetailPage({
   params,
 }: PageProps<"/events/[eventId]">) {
   const { eventId } = await params;
+
+  const session = await auth();
+  const currentUser = session?.user?.id
+    ? await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, session.user!.id!),
+      })
+    : undefined;
 
   const event = await db.query.events.findFirst({
     where: (events, { eq }) => eq(events.id, eventId),
@@ -145,6 +153,7 @@ export default async function EventDetailPage({
         eventId={event.id}
         attendees={event.attendees}
         atCapacity={atCapacity}
+        inviteMessage={currentUser?.defaultInviteMessage}
         setInviteStatus={setInviteStatus}
         setPlusOneInviteStatus={setPlusOneInviteStatus}
         addPlusOne={addPlusOne}

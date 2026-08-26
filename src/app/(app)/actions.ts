@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { events, eventAttendees, plusOnes, regulars } from "@/db/schema";
+import { events, eventAttendees, plusOnes, regulars, users } from "@/db/schema";
 
 async function requireUserId() {
   const session = await auth();
@@ -37,6 +37,16 @@ async function assertRoomFor(eventId: string, additional: number) {
   if (count + additional > capacity) {
     throw new Error(`Event is at capacity (${capacity}).`);
   }
+}
+
+// --- Settings ---
+
+export async function setDefaultInviteMessage(formData: FormData) {
+  const userId = await requireUserId();
+  const message = String(formData.get("message") ?? "").trim() || null;
+
+  await db.update(users).set({ defaultInviteMessage: message }).where(eq(users.id, userId));
+  revalidatePath("/settings");
 }
 
 // --- Regulars (roster) ---

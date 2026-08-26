@@ -29,6 +29,7 @@ export function AttendeeList({
   eventId,
   attendees,
   atCapacity,
+  inviteMessage,
   setInviteStatus,
   setPlusOneInviteStatus,
   addPlusOne,
@@ -41,6 +42,7 @@ export function AttendeeList({
   eventId: string;
   attendees: Attendee[];
   atCapacity: boolean;
+  inviteMessage?: string | null;
   setInviteStatus: (
     eventId: string,
     attendeeId: string,
@@ -106,9 +108,13 @@ export function AttendeeList({
     .map((a) => `${a.id}:${a.plusOnes.map((p) => p.id).join(",")}`)
     .join("|");
   const [plusOneOrder, setPlusOneOrder] = useState<Record<string, string[]>>(
-    () => Object.fromEntries(attendees.map((a) => [a.id, a.plusOnes.map((p) => p.id)])),
+    () =>
+      Object.fromEntries(
+        attendees.map((a) => [a.id, a.plusOnes.map((p) => p.id)]),
+      ),
   );
-  const [orderedPlusOneIdsKey, setOrderedPlusOneIdsKey] = useState(plusOneIdsKey);
+  const [orderedPlusOneIdsKey, setOrderedPlusOneIdsKey] =
+    useState(plusOneIdsKey);
   if (plusOneIdsKey !== orderedPlusOneIdsKey) {
     const nextPlusOneOrder: Record<string, string[]> = {};
     for (const attendee of attendees) {
@@ -126,7 +132,8 @@ export function AttendeeList({
     <>
       {rows.map((attendee) => {
         const confirmed = attendee.inviteStatus === "confirmed";
-        const name = attendee.regular?.name ?? attendee.displayName ?? "Unnamed";
+        const name =
+          attendee.regular?.name ?? attendee.displayName ?? "Unnamed";
 
         return (
           <div key={attendee.id} className="border-b border-divider">
@@ -140,13 +147,18 @@ export function AttendeeList({
               />
               <span
                 className={`font-semibold text-xs flex-1 min-w-0 truncate ${
-                  attendee.inviteStatus === "declined" ? "text-neutral-500" : "text-text"
+                  attendee.inviteStatus === "declined"
+                    ? "text-neutral-500"
+                    : "text-text"
                 }`}
               >
                 {name}
               </span>
               {attendee.regular?.phone && (
-                <TextInviteButton phone={attendee.regular.phone} />
+                <TextInviteButton
+                  phone={attendee.regular.phone}
+                  message={inviteMessage}
+                />
               )}
               <AddPlusOneButton
                 eventId={eventId}
@@ -169,52 +181,64 @@ export function AttendeeList({
                   setPaid={setAttendeePaid}
                 />
               ) : (
-                <span className="w-6 text-center text-xs text-neutral-700">—</span>
+                <span className="w-6 text-center text-xs text-neutral-700">
+                  —
+                </span>
               )}
             </div>
 
             {(() => {
-              const plusOneById = new Map(attendee.plusOnes.map((p) => [p.id, p]));
+              const plusOneById = new Map(
+                attendee.plusOnes.map((p) => [p.id, p]),
+              );
               const orderedPlusOnes = (plusOneOrder[attendee.id] ?? [])
                 .map((id) => plusOneById.get(id))
                 .filter((p): p is PlusOne => p !== undefined);
               return orderedPlusOnes.map((plusOne) => {
-              const plusOneConfirmed = plusOne.inviteStatus === "confirmed";
-              return (
-                <div key={plusOne.id} className="flex items-center gap-1 min-h-12 pl-2 border-t border-divider">
-                  <StatusChip
-                    eventId={eventId}
-                    attendeeId={plusOne.id}
-                    status={plusOne.inviteStatus}
-                    atCapacity={atCapacity}
-                    setInviteStatus={setPlusOneInviteStatus}
-                  />
-                  <span className="text-[10px] tracking-[0.06em] text-accent font-semibold flex-none">+1</span>
-                  <PlusOneNameInput
-                    eventId={eventId}
-                    plusOneId={plusOne.id}
-                    name={plusOne.name}
-                    setPlusOneName={setPlusOneName}
-                  />
-                  <RemoveButton
-                    ariaLabel="Remove +1"
-                    eventId={eventId}
-                    id={plusOne.id}
-                    remove={removePlusOne}
-                  />
-                  {plusOneConfirmed ? (
-                    <PaidCheckbox
+                const plusOneConfirmed = plusOne.inviteStatus === "confirmed";
+                return (
+                  <div
+                    key={plusOne.id}
+                    className="flex items-center gap-1 min-h-12 pl-1 border-t border-divider"
+                  >
+                    <span className="pr-2 text-[10px] tracking-[0.06em] text-accent font-semibold flex-none">
+                      +1
+                    </span>
+                    <StatusChip
+                      eventId={eventId}
+                      attendeeId={plusOne.id}
+                      status={plusOne.inviteStatus}
+                      atCapacity={atCapacity}
+                      setInviteStatus={setPlusOneInviteStatus}
+                    />
+
+                    <PlusOneNameInput
+                      eventId={eventId}
+                      plusOneId={plusOne.id}
+                      name={plusOne.name}
+                      setPlusOneName={setPlusOneName}
+                    />
+                    <RemoveButton
+                      ariaLabel="Remove +1"
                       eventId={eventId}
                       id={plusOne.id}
-                      paid={plusOne.paid}
-                      ariaLabel="Toggle +1 paid"
-                      setPaid={setPlusOnePaid}
+                      remove={removePlusOne}
                     />
-                  ) : (
-                    <span className="w-6 text-center text-xs text-neutral-700">—</span>
-                  )}
-                </div>
-              );
+                    {plusOneConfirmed ? (
+                      <PaidCheckbox
+                        eventId={eventId}
+                        id={plusOne.id}
+                        paid={plusOne.paid}
+                        ariaLabel="Toggle +1 paid"
+                        setPaid={setPlusOnePaid}
+                      />
+                    ) : (
+                      <span className="w-6 text-center text-xs text-neutral-700">
+                        —
+                      </span>
+                    )}
+                  </div>
+                );
               });
             })()}
           </div>

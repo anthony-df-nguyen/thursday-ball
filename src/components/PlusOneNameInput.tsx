@@ -26,7 +26,7 @@ export function PlusOneNameInput({
             setPlusOneName(eventId, plusOneId, value);
           });
         }}
-        placeholder="name (optional)"
+        placeholder="Name (optional)"
         // font-size stays at 16px (text-base) so iOS Safari doesn't
         // zoom the page on focus; scale() shrinks it visually to match
         // the xs attendee-name rows instead. The 133.33% width + left

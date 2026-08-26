@@ -87,6 +87,14 @@ export function AppHeader({
             >
               My Profile
             </Link>
+            <Link
+              href="/settings"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3.5 py-2.5 text-[13px] text-text no-underline border-t border-divider hover:bg-bg"
+            >
+              Settings
+            </Link>
             <form action={signOutAction}>
               <button
                 type="submit"
