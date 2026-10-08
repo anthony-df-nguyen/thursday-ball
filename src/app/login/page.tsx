@@ -2,7 +2,7 @@ import { signIn } from "@/auth";
 
 export default function LoginPage() {
   return (
-    <div className="flex-1 flex flex-col justify-center px-6 py-8">
+    <div className="flex-1 flex flex-col justify-center px-6 py-8 md:max-w-sm md:mx-auto md:w-full">
       <div className="w-10 h-10 rounded-md border border-accent flex items-center justify-center text-accent font-semibold">
         TB
       </div>

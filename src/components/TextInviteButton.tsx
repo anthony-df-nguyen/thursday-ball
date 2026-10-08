@@ -14,7 +14,7 @@ export function TextInviteButton({
     <a
       href={href}
       aria-label="Text invite"
-      className="w-6 h-11 flex items-center justify-center text-neutral-600 flex-none"
+      className="w-6 h-11 flex items-center justify-center text-neutral-600 hover:text-text flex-none"
     >
       <FaRegMessage size={15} />
     </a>

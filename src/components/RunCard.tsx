@@ -32,7 +32,7 @@ export function RunCard({ event }: { event: EventWithAttendees }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="block rounded-lg bg-surface shadow-sm mb-3.5 overflow-hidden no-underline text-inherit"
+      className="block rounded-lg bg-surface shadow-sm hover:shadow-md transition-shadow overflow-hidden no-underline text-inherit"
     >
       <div className="p-4 flex flex-col gap-1.5">
         <div className="text-[10px] tracking-[0.1em] uppercase text-accent font-semibold">
