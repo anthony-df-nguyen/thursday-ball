@@ -11,7 +11,7 @@ export default async function SettingsPage() {
     : undefined;
 
   return (
-    <div className="flex-1 px-4 pt-5 pb-6">
+    <div className="flex-1 px-4 pt-5 pb-6 md:px-8 md:pt-8 md:max-w-2xl">
       <h2 className="text-2xl font-medium">Settings</h2>
 
       <div className="rounded-lg bg-surface shadow-sm p-4 mt-4">

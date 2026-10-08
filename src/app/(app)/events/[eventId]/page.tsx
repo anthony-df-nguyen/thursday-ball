@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { AttendeeList } from "@/components/AttendeeList";
-import { AddPlayersSheet } from "@/components/AddPlayersSheet";
+import { AddPlayersPanel, AddPlayersSheet } from "@/components/AddPlayersSheet";
 import { EventMenu } from "@/components/EventMenu";
 import { HeadcountBar } from "@/components/HeadcountBar";
 import { formatRunDateLong } from "@/lib/dates";
@@ -101,8 +101,19 @@ export default async function EventDetailPage({
   }, 0);
   const allPaid = totalPeople > 0 && paidCount === totalPeople;
 
+  const addPlayersProps = {
+    eventId: event.id,
+    availableRegulars: availableRegulars.map((r) => ({
+      id: r.id,
+      name: r.name,
+      isOrganizer: r.isOrganizer,
+    })),
+    addRegularToEvent,
+    addAdHocAttendee,
+  };
+
   return (
-    <div className="flex-1 px-4 pt-5 pb-6">
+    <div className="flex-1 px-4 pt-5 pb-6 md:px-8 md:pt-8">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-[10px] tracking-[0.1em] uppercase text-accent font-semibold">Open run</div>
@@ -133,36 +144,35 @@ export default async function EventDetailPage({
         </p>
       )}
 
-      <AddPlayersSheet
-        eventId={event.id}
-        availableRegulars={availableRegulars.map((r) => ({
-          id: r.id,
-          name: r.name,
-          isOrganizer: r.isOrganizer,
-        }))}
-        addRegularToEvent={addRegularToEvent}
-        addAdHocAttendee={addAdHocAttendee}
-      />
+      <AddPlayersSheet {...addPlayersProps} />
 
-      <div className="flex justify-between text-[10px] tracking-[0.08em] uppercase text-neutral-500 pb-1.5 border-b border-divider mt-5">
-        <span>Player · tap status to cycle</span>
-        <span>Paid</span>
+      <div className="md:grid md:grid-cols-[minmax(0,1fr)_320px] md:gap-8 md:items-start">
+        <div>
+          <div className="flex justify-between text-[10px] tracking-[0.08em] uppercase text-neutral-500 pb-1.5 border-b border-divider mt-5">
+            <span>Player · tap status to cycle</span>
+            <span>Paid</span>
+          </div>
+
+          <AttendeeList
+            eventId={event.id}
+            attendees={event.attendees}
+            atCapacity={atCapacity}
+            inviteMessage={currentUser?.defaultInviteMessage}
+            setInviteStatus={setInviteStatus}
+            setPlusOneInviteStatus={setPlusOneInviteStatus}
+            addPlusOne={addPlusOne}
+            removeAttendee={removeAttendee}
+            removePlusOne={removePlusOne}
+            setAttendeePaid={setAttendeePaid}
+            setPlusOnePaid={setPlusOnePaid}
+            setPlusOneName={setPlusOneName}
+          />
+        </div>
+
+        <div className="hidden md:flex md:flex-col md:sticky md:top-[70px] md:max-h-[calc(100dvh-90px)] mt-5 bg-surface rounded-lg shadow-sm p-4">
+          <AddPlayersPanel {...addPlayersProps} />
+        </div>
       </div>
-
-      <AttendeeList
-        eventId={event.id}
-        attendees={event.attendees}
-        atCapacity={atCapacity}
-        inviteMessage={currentUser?.defaultInviteMessage}
-        setInviteStatus={setInviteStatus}
-        setPlusOneInviteStatus={setPlusOneInviteStatus}
-        addPlusOne={addPlusOne}
-        removeAttendee={removeAttendee}
-        removePlusOne={removePlusOne}
-        setAttendeePaid={setAttendeePaid}
-        setPlusOnePaid={setPlusOnePaid}
-        setPlusOneName={setPlusOneName}
-      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { NAV_ITEMS, isNavItemActive } from "./BottomNav";
 
 function initialsOf(name: string | null | undefined) {
   if (!name) return "?";
@@ -40,24 +41,38 @@ export function AppHeader({
 
   return (
     <div className="sticky top-0 z-10 bg-bg border-b border-divider flex items-center gap-1.5 px-2 min-h-[54px]">
-      {isEvent ? (
+      {isEvent && (
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="flex items-center gap-1.5 bg-none border-none cursor-pointer text-[15px] text-text pl-2 h-11"
+          className="flex md:hidden items-center gap-1.5 bg-none border-none cursor-pointer text-[15px] text-text pl-2 h-11"
         >
           <span aria-hidden="true" className="text-lg">←</span>
           Back to Runs
         </button>
-      ) : (
-        <Link
-          href="/"
-          className="font-heading font-semibold text-[15px] tracking-[0.01em] pl-2 flex items-center gap-1.5 text-text no-underline"
-        >
-          <span aria-hidden="true">🏀</span>
-          Thursday Ball
-        </Link>
       )}
+      <Link
+        href="/"
+        className={`font-heading font-semibold text-[15px] tracking-[0.01em] pl-2 items-center gap-1.5 text-text no-underline ${
+          isEvent ? "hidden md:flex" : "flex"
+        }`}
+      >
+        <span aria-hidden="true">🏀</span>
+        Thursday Ball
+      </Link>
+      <nav className="hidden md:flex items-center gap-1 ml-6">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`px-3 py-1.5 rounded-md font-heading font-semibold text-[13px] no-underline hover:bg-surface ${
+              isNavItemActive(item.href, pathname) ? "text-accent" : "text-neutral-500 hover:text-text"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
       <div className="relative ml-auto mr-2" ref={menuRef}>
         <button
           type="button"

@@ -33,7 +33,7 @@ const steps = [
 
 export default function HelpPage() {
   return (
-    <div className=" px-4 pt-5 pb-6">
+    <div className=" px-4 pt-5 pb-6 md:px-8 md:pt-8 md:max-w-2xl">
             <Link
         href="/"
         className="inline-block text-sm font-semibold text-accent no-underline mb-4"
