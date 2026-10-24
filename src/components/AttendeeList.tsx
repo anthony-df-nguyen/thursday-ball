@@ -29,6 +29,7 @@ export function AttendeeList({
   eventId,
   attendees,
   atCapacity,
+  runHappened,
   inviteMessage,
   setInviteStatus,
   setPlusOneInviteStatus,
@@ -42,6 +43,7 @@ export function AttendeeList({
   eventId: string;
   attendees: Attendee[];
   atCapacity: boolean;
+  runHappened: boolean;
   inviteMessage?: string | null;
   setInviteStatus: (
     eventId: string,
@@ -143,11 +145,13 @@ export function AttendeeList({
                 attendeeId={attendee.id}
                 status={attendee.inviteStatus}
                 atCapacity={atCapacity}
+                runHappened={runHappened}
                 setInviteStatus={setInviteStatus}
               />
               <span
                 className={`font-semibold text-xs md:text-sm flex-1 min-w-0 truncate ${
-                  attendee.inviteStatus === "declined"
+                  attendee.inviteStatus === "declined" ||
+                  attendee.inviteStatus === "no_show"
                     ? "text-neutral-500"
                     : "text-text"
                 }`}
@@ -209,6 +213,7 @@ export function AttendeeList({
                       attendeeId={plusOne.id}
                       status={plusOne.inviteStatus}
                       atCapacity={atCapacity}
+                      runHappened={runHappened}
                       setInviteStatus={setPlusOneInviteStatus}
                     />
 

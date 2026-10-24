@@ -26,8 +26,8 @@ const steps = [
     body: 'Check the paid box for each person and each +1 as they pay. The run shows "X of Y paid" at a glance.',
   },
   {
-    title: "7. Close it out",
-    body: "Once everyone (including +1s) is marked paid, delete the run from the menu. It asks you to confirm first — there's no history kept, so once it's gone, it's gone.",
+    title: "7. Archive it",
+    body: 'After the run, remove anyone who didn\'t play or tap their status to NO SHOW — anyone still marked IN counts as played in Stats. Once everyone\'s paid, archive the run from the menu to hide it from the list; it still counts. To fix something later, open it under "Archived" and edit it directly. Deleting a run removes it for good, stats included, so only delete runs that never happened.',
   },
 ];
 

@@ -6,6 +6,7 @@ import {
   timestamp,
   date,
   integer,
+  index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -18,8 +19,10 @@ import { relations } from "drizzle-orm";
  * - Every person we might invite (organizers included) lives in `regulars`,
  *   the reusable roster. An organizer's `regulars` row links to their
  *   `users` row via `userId`; everyone else has `userId = null`.
- * - `events` are hard-deleted once everyone (including +1s) has paid.
- *   No history is kept by design.
+ * - `events` end one of two ways: archived (status `closed`, just hidden from
+ *   the main list) or hard-deleted (cascades everything). Stats are computed
+ *   live from every run dated today or earlier: `confirmed` counts as played,
+ *   `no_show` as a miss. Deleting a run removes it from stats.
  * - `eventAttendees` is the join between an event and either a roster
  *   `regular` or an ad-hoc name typed in for that event only.
  * - `plusOnes` are individually tracked (not just a count) so each +1's
@@ -59,24 +62,44 @@ export const regulars = pgTable("regulars", {
 export const eventStatusValues = ["open", "closed"] as const;
 export type EventStatus = (typeof eventStatusValues)[number];
 
-export const events = pgTable("events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  date: date("date").notNull(),
-  status: text("status", { enum: eventStatusValues })
-    .notNull()
-    .default("open"),
-  // Hard cap enforced in application logic (see PRD 4.6): confirmed
-  // attendees + all their plus-ones must never exceed this.
-  capacity: integer("capacity").notNull().default(15),
-  createdBy: uuid("created_by")
-    .notNull()
-    .references(() => users.id, { onDelete: "restrict" }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    date: date("date").notNull(),
+    status: text("status", { enum: eventStatusValues })
+      .notNull()
+      .default("open"),
+    // Hard cap enforced in application logic (see PRD 4.6): confirmed
+    // attendees + all their plus-ones must never exceed this.
+    capacity: integer("capacity").notNull().default(15),
+    // Set when status is "closed" (archived).
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Serves the Runs page (open runs by date) and archived-run paging,
+    // which walks (date, id) newest first within status = 'closed'.
+    statusDateIdx: index("events_status_date_idx").on(
+      table.status,
+      table.date,
+      table.id,
+    ),
+  }),
+);
 
-export const inviteStatusValues = ["invited", "confirmed", "declined"] as const;
+// `no_show` = said yes but didn't play; doesn't count toward capacity.
+export const inviteStatusValues = [
+  "invited",
+  "confirmed",
+  "declined",
+  "no_show",
+] as const;
 export type InviteStatus = (typeof inviteStatusValues)[number];
 
 export const eventAttendees = pgTable(
@@ -106,27 +129,38 @@ export const eventAttendees = pgTable(
       table.eventId,
       table.regularId,
     ),
+    // Postgres doesn't index FK columns on its own; this one backs
+    // deleteRegular and the ON DELETE SET NULL from regulars.
+    regularIdx: index("event_attendees_regular_idx").on(table.regularId),
   }),
 );
 
-export const plusOnes = pgTable("plus_ones", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  eventAttendeeId: uuid("event_attendee_id")
-    .notNull()
-    .references(() => eventAttendees.id, { onDelete: "cascade" }),
-  // Optional — a +1 doesn't need to be named.
-  name: text("name"),
-  // Tracked independently of the inviting attendee's own invite_status —
-  // a +1 can be confirmed (or still awaiting a response) even if the
-  // regular who's bringing them has declined.
-  inviteStatus: text("invite_status", { enum: inviteStatusValues })
-    .notNull()
-    .default("invited"),
-  paid: boolean("paid").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const plusOnes = pgTable(
+  "plus_ones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventAttendeeId: uuid("event_attendee_id")
+      .notNull()
+      .references(() => eventAttendees.id, { onDelete: "cascade" }),
+    // Optional — a +1 doesn't need to be named.
+    name: text("name"),
+    // Tracked independently of the inviting attendee's own invite_status —
+    // a +1 can be confirmed (or still awaiting a response) even if the
+    // regular who's bringing them has declined.
+    inviteStatus: text("invite_status", { enum: inviteStatusValues })
+      .notNull()
+      .default("invited"),
+    paid: boolean("paid").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Every attendees -> plusOnes load and cascade delete looks +1s up by
+    // attendee; without this each lookup is a full table scan.
+    attendeeIdx: index("plus_ones_event_attendee_idx").on(table.eventAttendeeId),
+  }),
+);
 
 // --- Relations (for Drizzle's relational query API) ---
 

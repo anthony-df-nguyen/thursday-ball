@@ -5,11 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 export const NAV_ITEMS = [
   { label: "Runs", href: "/" },
   { label: "Roster", href: "/roster" },
+  { label: "Stats", href: "/stats" },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
-  const onRoster = pathname.startsWith("/roster");
-  return href === "/roster" ? onRoster : !onRoster;
+  if (href === "/") {
+    return !NAV_ITEMS.some((i) => i.href !== "/" && pathname.startsWith(i.href));
+  }
+  return pathname.startsWith(href);
 }
 
 export function BottomNav() {
