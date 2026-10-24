@@ -26,8 +26,12 @@ const steps = [
     body: 'Check the paid box for each person and each +1 as they pay. The run shows "X of Y paid" at a glance.',
   },
   {
-    title: "7. Archive it",
-    body: 'After the run, remove anyone who didn\'t play or tap their status to NO SHOW — anyone still marked IN counts as played in Stats. Once everyone\'s paid, archive the run from the menu to hide it from the list; it still counts. To fix something later, open it under "Archived" and edit it directly. Deleting a run removes it for good, stats included, so only delete runs that never happened.',
+    title: "7. Archive it (don't delete it)",
+    body: 'Once the run is over and everyone\'s paid, archive it from the menu. Archiving just hides it from the list — it still counts in Stats, and you can open it under "Archived" to edit or unarchive it later. Only delete a run if it never actually happened (e.g. it was cancelled): deleting removes it for good, stats included.',
+  },
+  {
+    title: "8. Mark no-shows",
+    body: 'If someone said yes but didn\'t come, tap their status and pick NO SHOW. Anyone still marked IN when the run happens counts as played in Stats, so only mark the people who bailed. A no-show stays on the run so you can see who flaked, doesn\'t count toward the 15 cap, and counts as a miss in Stats (the No-shows tab and no-show rate). If someone declined ahead of time, leave them as Declined instead — that isn\'t a no-show. Runs count in Stats once their date is today or earlier, archived or not.',
   },
 ];
 
