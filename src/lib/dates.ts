@@ -1,3 +1,13 @@
+// Runs happen in one place, so "today" means today there, not in UTC (which
+// rolls over in the evening for US timezones). Server code runs on UTC hosts,
+// so the zone is explicit rather than the machine's.
+export const APP_TIMEZONE = process.env.APP_TIMEZONE ?? "America/Los_Angeles";
+
+export function todayISO(now = new Date()) {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIMEZONE }).format(now);
+}
+
 export function nextThursdayISO() {
   const d = new Date();
   const add = ((4 - d.getDay()) + 7) % 7 || 7;

@@ -49,7 +49,9 @@ export function RunCard({ event }: { event: EventWithAttendees }) {
         <HeadcountBar headcount={headcount} capacity={event.capacity} />
       </div>
       <div className="border-t border-divider px-4 py-2.5 flex justify-between items-center min-h-[44px]">
-        <span className="text-[13px] font-semibold text-accent">Open →</span>
+        <span className="text-[13px] font-semibold text-accent">
+          {event.status === "closed" ? "Archived →" : "Open →"}
+        </span>
         {allPaid ? (
           <span className="tag tag-success">ALL PAID</span>
         ) : (

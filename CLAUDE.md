@@ -10,6 +10,15 @@ v1 scaffold is in place: Next.js 16 (App Router, TypeScript, Tailwind v4), Auth.
 
 Note: this repo is on **Next.js 16**, which renamed Middleware to **Proxy** (`src/proxy.ts`, not `middleware.ts` — same functionality). Check `node_modules/next/dist/docs/` before assuming an older Next.js convention applies.
 
+## Testing
+
+Vitest suite in `tests/` (details in `tests/README.md`). It needs `docker compose up -d`; it uses its own `thursday_ball_test` database, never `.env.local`.
+
+- **Every feature or behavior change ships with tests in the same change.** New server action or query → a test in `tests/*.test.ts` (use the helpers in `tests/helpers.ts`). New or changed component logic → `tests/components/*.test.tsx`. Bug fix → a test that fails without the fix.
+- If a change alters existing behavior, update the affected tests rather than deleting or loosening them; mention it if an existing test had to change.
+- Run `npm test` (plus `npx tsc --noEmit` and `npm run lint`) before calling work done, and report failures honestly.
+- If you add or rename test files, or the suite's coverage meaningfully changes, update the coverage table in `tests/README.md`.
+
 ---
 
 # Product Requirements Document
@@ -50,7 +59,7 @@ A mobile-first web app for a friend group to organize pickup basketball ("ball")
 - id, date, status (`open` | `closed`/paid-off), created_by (organizer), created_at
 - No location field for now — it's always the same spot.
 - Capacity: hard cap of **15 total headcount**, where headcount = confirmed regulars/players **plus** any +1s they're bringing. A confirmed regular with 2 +1s counts as 3 toward the cap.
-- Deleted once everyone (including all +1s) has paid — true hard delete, no history kept. Once gone, it's gone; there's no past-events log by design.
+- Ends one of two ways: **archived** (status `closed`, just hidden from the main list) or **deleted** (true hard delete, cascades everything). Stats are computed live from every run dated today or earlier, archived or not: `confirmed` counts as played, `no_show` as a miss. Deleting a run removes it from stats. Archived runs stay editable and can be unarchived.
 
 ### 4.4 EventAttendee (join table: Event ↔ Regular, or ad-hoc name)
 - id, event_id, regular_id (nullable — allows one-off names not in the roster), display_name (used if not a regular)
@@ -73,7 +82,7 @@ The 15-cap is **total headcount**: every `confirmed` attendee counts as 1, plus 
 4. **Add +1s** — for any confirmed attendee, organizer adds/removes individual +1 rows.
 5. **Enforce the cap** — UI blocks confirming a new attendee (or adding a +1) once total headcount hits 15.
 6. **Track payment** — organizer taps a checkbox per attendee *and* per +1 to mark paid/unpaid. Event view shows "X of Y paid" across everyone, including +1s.
-7. **Close out the event** — once every attendee and every +1 shows paid, organizer deletes the event (manual action, with a confirmation — not automatic, to avoid accidental data loss).
+7. **Archive the event** — after the run, organizer removes people who didn't play or sets them to `no_show`, then archives the event once everyone's paid (manual, with a confirmation) to hide it from the main list. The Stats page already counts it. Deleting instead removes it permanently, stats included.
 
 ## 6. Non-Functional Requirements
 
@@ -96,7 +105,7 @@ The 15-cap is **total headcount**: every `confirmed` attendee counts as 1, plus 
 - Self-service RSVP by non-organizer players — fully organizer-operated for v1, confirmed
 - Recurring event templates / auto-scheduling
 - Location/venue tracking (always the same spot for now)
-- Stats/history (e.g. attendance streaks) — event is hard-deleted once paid off, no historical record is kept, confirmed
+- Streaks, attendance-rate-vs-invited, and other advanced stats — v1 stats are runs played per month and no-show rate, derived live from past runs, archived or not
 
 ## 9. Open Questions
 

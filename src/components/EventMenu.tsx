@@ -4,17 +4,23 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 export function EventMenu({
   eventId,
+  archived,
   allPaid,
   unpaidCount,
   deleteEvent,
+  archiveEvent,
+  unarchiveEvent,
 }: {
   eventId: string;
+  archived: boolean;
   allPaid: boolean;
   unpaidCount: number;
   deleteEvent: (eventId: string) => Promise<void>;
+  archiveEvent: (eventId: string) => Promise<void>;
+  unarchiveEvent: (eventId: string) => Promise<void>;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"closeout" | "cancel" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"archive" | "cancel" | null>(null);
   const [pending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,16 +35,15 @@ export function EventMenu({
     return () => document.removeEventListener("click", onClick);
   }, [menuOpen]);
 
-  const confirmTitle = confirmAction === "cancel" ? "Cancel this run?" : "Close out this run?";
+  const unpaidNote = allPaid
+    ? ""
+    : `${unpaidCount} ${unpaidCount === 1 ? "person" : "people"} still show unpaid. `;
+
+  const confirmTitle = confirmAction === "cancel" ? "Delete this run?" : "Archive this run?";
   const confirmBody =
     confirmAction === "cancel"
-      ? `This cancels and permanently deletes the run — no history is kept.${
-          allPaid ? "" : ` ${unpaidCount} ${unpaidCount === 1 ? "person" : "people"} still show unpaid.`
-        }`
-      : (allPaid
-          ? "Everyone's paid. "
-          : `${unpaidCount} ${unpaidCount === 1 ? "person" : "people"} still show unpaid. `) +
-        "This permanently deletes the run — no history is kept.";
+      ? `${unpaidNote}This permanently deletes the run and removes it from stats. It can't be undone.`
+      : `${unpaidNote}The run moves off the main list. It still counts toward stats.`;
 
   return (
     <div className="relative" ref={menuRef}>
@@ -53,17 +58,29 @@ export function EventMenu({
 
       {menuOpen && (
         <div className="absolute right-0 top-10 z-20 min-w-[170px] rounded-md border border-divider bg-surface shadow-lg overflow-hidden">
-          <button
-            type="button"
-            className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold bg-none border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-text"
-            disabled={!allPaid}
-            onClick={() => {
-              setMenuOpen(false);
-              setConfirmAction("closeout");
-            }}
-          >
-            {allPaid ? "Close out — everyone paid" : `Close out (${unpaidCount} unpaid)`}
-          </button>
+          {archived ? (
+            <button
+              type="button"
+              className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold bg-none border-none cursor-pointer text-text"
+              onClick={() => {
+                setMenuOpen(false);
+                startTransition(() => unarchiveEvent(eventId));
+              }}
+            >
+              Unarchive to edit
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold bg-none border-none cursor-pointer text-text"
+              onClick={() => {
+                setMenuOpen(false);
+                setConfirmAction("archive");
+              }}
+            >
+              {allPaid ? "Archive — everyone paid" : `Archive (${unpaidCount} unpaid)`}
+            </button>
+          )}
           <button
             type="button"
             className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold bg-none border-none cursor-pointer text-accent-300 border-t border-divider"
@@ -72,7 +89,7 @@ export function EventMenu({
               setConfirmAction("cancel");
             }}
           >
-            Cancel this Run
+            Delete this Run
           </button>
         </div>
       )}
@@ -94,9 +111,13 @@ export function EventMenu({
                 type="button"
                 className="btn btn-primary min-h-11"
                 disabled={pending}
-                onClick={() => startTransition(() => deleteEvent(eventId))}
+                onClick={() =>
+                  startTransition(() =>
+                    confirmAction === "cancel" ? deleteEvent(eventId) : archiveEvent(eventId),
+                  )
+                }
               >
-                {confirmAction === "cancel" ? "Cancel run" : "Delete"}
+                {confirmAction === "cancel" ? "Delete" : "Archive"}
               </button>
             </div>
           </div>

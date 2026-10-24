@@ -69,8 +69,8 @@ See `src/db/schema.ts` for the full Drizzle schema and inline comments. Summary:
 
 - **users** — organizer login accounts only (gated by `ORGANIZER_EMAILS`)
 - **regulars** — the reusable roster (includes organizers, flagged `isOrganizer`)
-- **events** — one per play session, `date` only (no location — always the same spot), hard-deleted once fully paid
-- **eventAttendees** — join between an event and a regular (or an ad-hoc name), with `inviteStatus` (`invited` / `confirmed` / `declined`) and `paid`
+- **events** — one per play session, `date` only (no location — always the same spot), archived (status `closed`, just hidden from the main list) or hard-deleted (removed from stats too)
+- **eventAttendees** — join between an event and a regular (or an ad-hoc name), with `inviteStatus` (`invited` / `confirmed` / `declined` / `no_show`) and `paid`
 - **plusOnes** — individually tracked per attendee so each +1's payment can be marked separately, with an optional name
 
 ## Deploying
@@ -85,4 +85,8 @@ See `src/db/schema.ts` for the full Drizzle schema and inline comments. Summary:
 - No real notifications — invites happen over text/group chat; the app is just the tracker
 - No payment processing — paid/unpaid is a manual flag
 - No self-service login for non-organizer players (fully organizer-operated by design)
-- No history after an event is deleted (intentional — hard delete once everyone's paid)
+- Deleted events leave no history (intentional); archive a run to hide it while keeping it in stats
+
+## Tests
+
+Run `npm test` before pushing (needs `docker compose up -d`). See [`tests/README.md`](tests/README.md) for details.
