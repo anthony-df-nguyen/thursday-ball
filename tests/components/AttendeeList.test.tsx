@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AttendeeList } from "@/components/AttendeeList";
 import type { InviteStatus } from "@/db/schema";
@@ -43,6 +43,25 @@ function setup(attendees: Attendee[], over: Partial<Props> = {}) {
 const names = () => screen.getAllByText(/^(Ann|Bob|Cy|Unnamed)$/).map((n) => n.textContent);
 
 describe("AttendeeList", () => {
+  it("shows an RSVP preview link per person in dev only", () => {
+    const rows = [attendee({ id: "1", displayName: "Bob", rsvpToken: "tok-1" })];
+    setup(rows);
+    expect(screen.queryByRole("link", { name: "Preview RSVP page" })).toBeNull();
+    cleanup();
+
+    vi.stubEnv("NODE_ENV", "development");
+    setup(rows);
+    expect(screen.getByRole("link", { name: "Preview RSVP page" })).toHaveAttribute("href", "/rsvp/tok-1");
+    vi.unstubAllEnvs();
+  });
+
+  it("shows no RSVP preview link without a token, even in dev", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    setup([attendee({ id: "1", displayName: "Bob" })]);
+    expect(screen.queryByRole("link", { name: "Preview RSVP page" })).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
   it("names rows from the roster, then display name, then Unnamed", () => {
     setup([
       attendee({ id: "1", regular: { name: "Ann", phone: null } }),

@@ -269,6 +269,58 @@ describe("RSVP payment section", () => {
     expect(html).toContain('href="https://account.venmo.com/u/anthony10101"');
     expect(html).toContain('href="https://account.venmo.com/u/Alvintphan"');
   });
+
+  it("groups payment methods under each person", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    // Scope to the Payment card, then split into one block per person.
+    const card = html.slice(html.indexOf(">Payment<"));
+    const block = (name: string) => {
+      const start = card.indexOf(`>${name}<`);
+      const end = card.indexOf("</li>", start);
+      return card.slice(start, end);
+    };
+    const anthony = block("Anthony");
+    expect(anthony).toContain("@anthony10101");
+    expect(anthony).toContain("714-791-1606");
+    expect(anthony).not.toContain("UmerMemon");
+
+    const umer = block("Umer");
+    expect(umer).toContain("@UmerMemon");
+    expect(umer).toContain("memon.management@gmail.com");
+    expect(umer).toContain("$MemonManagement");
+    expect(umer).not.toContain("anthony10101");
+
+    const alvin = block("Alvin");
+    expect(alvin).toContain("@Alvintphan");
+    expect(alvin).not.toContain("714-791-1606");
+  });
+
+  it("leaves out methods a person doesn't take", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    const card = html.slice(html.indexOf(">Payment<"));
+    // Alvin only takes Venmo.
+    const start = card.indexOf(">Alvin<");
+    const alvin = card.slice(start, card.indexOf("</li>", start));
+    expect(alvin).toContain("@Alvintphan");
+    expect(alvin).not.toContain("Zelle");
+    expect(alvin).not.toContain("Cash App");
+    // Only Umer takes Cash App.
+    expect(card.split("Cash App")).toHaveLength(2);
+  });
+
+  it("shows Umer's Zelle email and Cash App link", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("memon.management@gmail.com");
+    expect(html).toContain("Cash App");
+    expect(html).toContain('href="https://cash.app/$MemonManagement"');
+    expect(html).toContain("$MemonManagement");
+  });
 });
 
 describe("RSVP confirmed count", () => {

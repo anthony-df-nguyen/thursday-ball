@@ -162,6 +162,18 @@ export function AttendeeList({
               >
                 {name}
               </span>
+              {process.env.NODE_ENV === "development" && attendee.rsvpToken && (
+                // Dev only: open the RSVP page without sending a text.
+                <a
+                  href={`/rsvp/${attendee.rsvpToken}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Preview RSVP page"
+                  className="px-1 h-11 flex items-center text-[10px] font-semibold text-accent flex-none"
+                >
+                  RSVP
+                </a>
+              )}
               {attendee.regular?.phone && (
                 <TextInviteButton
                   phone={attendee.regular.phone}

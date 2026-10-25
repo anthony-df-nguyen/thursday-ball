@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { eventAttendees, plusOnes } from "@/db/schema";
 import { formatRunDateLong } from "@/lib/dates";
 import { formatRunTime, mapsUrl } from "@/lib/runDetails";
-import { VENMO_HANDLES, ZELLE_ACCOUNTS, venmoUrl } from "@/lib/payment";
+import { PAYEES, cashAppUrl, venmoUrl } from "@/lib/payment";
 import { rsvpOpen, runForToken } from "@/lib/rsvp";
 import { RsvpButtons } from "@/components/RsvpButtons";
 import { respond, type RsvpResult } from "../actions";
@@ -199,29 +199,49 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
       </p>
 
       <div className="mt-4 rounded-lg bg-surface shadow-sm p-4">
-        <div className="font-heading font-medium text-[15px]">Payment</div>
-        <div className="mt-2 text-[13px] text-neutral-400">Venmo</div>
-        <ul className="mt-1 flex flex-col gap-2">
-          {VENMO_HANDLES.map((handle) => (
-            <li key={handle}>
-              <a
-                href={venmoUrl(handle)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-accent underline text-[15px]"
-              >
-                @{handle}
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 text-[13px] text-neutral-400">Zelle</div>
-        <ul className="mt-2 flex flex-col gap-2">
-          {ZELLE_ACCOUNTS.map((z) => (
-            <li key={z.phone} className="text-[15px]">
-              <span className="font-semibold">{z.name} {"  "}</span>
-              <span className="ml-1 text-neutral-400">{z.phone}</span>
-              
+        <div className="font-heading font-medium text-lg">Payment</div>
+        <ul className="mt-4 flex flex-col gap-4">
+          {PAYEES.map((p) => (
+            <li key={p.name}>
+              <div className="font-semibold text-[15px]">{p.name}</div>
+              <dl className="mt-1 flex flex-col gap-1 text-[15px]">
+                {p.venmo && (
+                  <div className="flex gap-2">
+                    <dt className="w-20 text-[13px] leading-[22px] text-neutral-400">Venmo</dt>
+                    <dd>
+                      <a
+                        href={venmoUrl(p.venmo)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-accent underline"
+                      >
+                        @{p.venmo}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {p.zelle && (
+                  <div className="flex gap-2">
+                    <dt className="w-20 text-[13px] leading-[22px] text-neutral-400">Zelle</dt>
+                    <dd>{p.zelle}</dd>
+                  </div>
+                )}
+                {p.cashApp && (
+                  <div className="flex gap-2">
+                    <dt className="w-20 text-[13px] leading-[22px] text-neutral-400">Cash App</dt>
+                    <dd>
+                      <a
+                        href={cashAppUrl(p.cashApp)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-accent underline"
+                      >
+                        {p.cashApp}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </li>
           ))}
         </ul>
