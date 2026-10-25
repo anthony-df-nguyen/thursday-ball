@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatRunDate, formatRunDateLong, nextThursdayISO, todayISO } from "@/lib/dates";
+import { formatRunDate, formatRunDateLong, formatRunDateShort, relativeDays, nextThursdayISO, todayISO } from "@/lib/dates";
 
 afterEach(() => vi.useRealTimers());
 
@@ -32,5 +32,20 @@ describe("todayISO", () => {
     // 03:00 UTC Friday is still Thursday evening in Los Angeles.
     expect(todayISO(new Date("2026-10-23T03:00:00Z"))).toBe("2026-10-22");
     expect(todayISO(new Date("2026-10-23T08:00:00Z"))).toBe("2026-10-23");
+  });
+});
+
+describe("RSVP header dates", () => {
+  const now = new Date("2026-10-24T20:00:00-07:00");
+
+  it("formats a short weekday and date", () => {
+    expect(formatRunDateShort("2026-10-29")).toBe("Thu, Oct 29");
+  });
+
+  it("describes how far away a run is, in the app's timezone", () => {
+    expect(relativeDays("2026-10-24", now)).toBe("today");
+    expect(relativeDays("2026-10-25", now)).toBe("tomorrow");
+    expect(relativeDays("2026-10-29", now)).toBe("in 5 days");
+    expect(relativeDays("2026-10-23", now)).toBe("");
   });
 });

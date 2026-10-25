@@ -64,22 +64,22 @@ describe("RSVP page", () => {
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const yes = await makeAttendee(e.id, { displayName: "Yes" }, "confirmed");
     expect(await render(await tokenOf(me.id))).toContain("Your RSVP Status</span><span");
-    expect(await render(await tokenOf(me.id))).toContain(">No response yet<");
+    expect(await render(await tokenOf(me.id))).toContain("No response yet");
     const yesHtml = await render(await tokenOf(yes.id));
     expect(yesHtml).toContain("Your RSVP Status</span><span");
-    expect(yesHtml).toContain(">You&#x27;re in<");
+    expect(yesHtml).toContain("You&#x27;re in");
   });
 
   it("doesn't repeat a yes/no result as a message; the Your RSVP Status card is enough", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" }, "confirmed");
     const html = await render(await tokenOf(me.id), "yes");
-    expect(html).toContain(">You&#x27;re in<");
+    expect(html).toContain("You&#x27;re in");
     expect(html).not.toContain("See you there");
     expect(html).not.toContain('role="alert"');
     const no = await makeAttendee(e.id, { displayName: "No" }, "declined");
     const noHtml = await render(await tokenOf(no.id), "no");
-    expect(noHtml).toContain(">You&#x27;re out<");
+    expect(noHtml).toContain("You&#x27;re out");
     expect(noHtml).not.toContain("Thanks for letting us know");
   });
 
@@ -99,18 +99,18 @@ describe("RSVP page", () => {
     const html = await render(await tokenOf(me.id), "full");
     expect(html).toContain('role="alert"');
     expect(html).toContain("border-red-500");
-    expect(html).toContain("this run is full right now");
+    expect(html).toContain("This run is currently full");
   });
 
-  it("disables Yes/No and flags it in red when the run is already full", async () => {
+  it("disables only Yes and flags it in red when the run is already full", async () => {
     const e = await makeEvent(FUTURE, { capacity: 1 });
     await makeAttendee(e.id, { displayName: "A" }, "confirmed");
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
-    expect(html.match(/disabled=""/g)).toHaveLength(2);
+    expect(html.match(/disabled=""/g)).toHaveLength(1);
     expect(html).toContain('role="alert"');
-    expect(html).toContain("this run is full right now");
-    expect(html.match(/this run is full right now/g)).toHaveLength(1);
+    expect(html).toContain("This run is currently full");
+    expect(html.match(/This run is currently full/g)).toHaveLength(1);
   });
 
   it("shows the full notice above the Yes/No buttons even with a leftover ?r= in the URL", async () => {
@@ -121,7 +121,7 @@ describe("RSVP page", () => {
     for (const r of [undefined, "yes", "no", "closed"]) {
       const html = await render(token, r);
       expect(html).toContain('role="alert"');
-      expect(html.indexOf("this run is full right now")).toBeLessThan(html.indexOf(">Yes<"));
+      expect(html.indexOf("This run is currently full")).toBeLessThan(html.indexOf(">Yes<"));
     }
   });
 
@@ -133,8 +133,8 @@ describe("RSVP page", () => {
     for (const r of [undefined, "full"]) {
       const html = await render(token, r);
       expect(html).toContain('role="alert"');
-      expect(html.match(/disabled=""/g)).toHaveLength(2);
-      expect(html).toContain(">You&#x27;re out<");
+      expect(html.match(/disabled=""/g)).toHaveLength(1);
+      expect(html).toContain("You&#x27;re out");
     }
   });
 
@@ -143,11 +143,11 @@ describe("RSVP page", () => {
     const a = await makeAttendee(e.id, { displayName: "A" }, "confirmed");
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const token = await tokenOf(me.id);
-    expect(await render(token, "full")).toContain("this run is full right now");
+    expect(await render(token, "full")).toContain("This run is currently full");
 
     await db.delete(eventAttendees).where(eq(eventAttendees.id, a.id));
     const html = await render(token, "full");
-    expect(html).not.toContain("this run is full right now");
+    expect(html).not.toContain("This run is currently full");
     expect(html).not.toContain('role="alert"');
     expect(html).not.toContain('disabled=""');
   });
@@ -232,6 +232,15 @@ describe("RSVP preview image", () => {
 });
 
 describe("RSVP time and location", () => {
+  it("puts a divider between the name and the date", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain('<hr class="border-divider"/>');
+    expect(html.indexOf("<hr")).toBeGreaterThan(html.indexOf(">Me<"));
+    expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("Tue, Jan 1"));
+  });
+
   it("shows the time and links the location", async () => {
     const e = await makeEvent(FUTURE);
     await db.update(events).set({
@@ -241,22 +250,31 @@ describe("RSVP time and location", () => {
     }).where(eq(events.id, e.id));
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
-    expect(html).toContain("at 8:00 PM");
+    expect(html).toContain("Tue, Jan 1 · 8:00 PM");
     expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=1%20Gym%20Way%2C%20Town"');
-    expect(html).toContain("1 Gym Way, Town</span>");
+    expect(html).toContain("1 Gym Way, Town</div>");
     expect(html).toContain(">Main Gym<");
+    expect(html).toContain(">Map<");
   });
 
   it("omits both for runs without them", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
-    expect(html).not.toContain("📍");
-    expect(html).not.toContain(" at ");
+    expect(html).not.toContain(">Map<");
+    expect(html).not.toContain("·");
   });
 });
 
 describe("RSVP payment section", () => {
+  it("is set off by a divider", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html.lastIndexOf("<hr")).toBeGreaterThan(html.indexOf("text the organizer"));
+    expect(html.lastIndexOf("<hr")).toBeLessThan(html.indexOf(">Payment Info<"));
+  });
+
   it("links each Venmo account", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
@@ -275,7 +293,7 @@ describe("RSVP payment section", () => {
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
     // Scope to the Payment card, then split into one block per person.
-    const card = html.slice(html.indexOf(">Payment<"));
+    const card = html.slice(html.indexOf(">Payment Info<"));
     const block = (name: string) => {
       const start = card.indexOf(`>${name}<`);
       const end = card.indexOf("</li>", start);
@@ -301,7 +319,7 @@ describe("RSVP payment section", () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
-    const card = html.slice(html.indexOf(">Payment<"));
+    const card = html.slice(html.indexOf(">Payment Info<"));
     // Alvin only takes Venmo.
     const start = card.indexOf(">Alvin<");
     const alvin = card.slice(start, card.indexOf("</li>", start));
@@ -334,14 +352,15 @@ describe("RSVP confirmed count", () => {
     await makeAttendee(e.id, { displayName: "Bo" });
 
     const html = await render(await tokenOf(me.id));
-    expect(html).toContain("2 people are going so far");
+    expect(html).toContain("2 of 15 spots");
+    expect(html).toContain("13 left");
     expect(html).not.toContain("Alice");
   });
 
   it("shows 0 when nobody has confirmed", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
-    expect(await render(await tokenOf(me.id))).toContain("0 people are going so far");
+    expect(await render(await tokenOf(me.id))).toContain("0 of 15 spots");
   });
 });
 
@@ -358,16 +377,91 @@ describe("RSVP status colors", () => {
     expect(html).toContain("text-green-400");
   });
 
-  it("shows a No in red", async () => {
+  it("shows a No as muted gray with a cross, not red", async () => {
     const html = await statusHtml("declined");
     expect(html).toContain("You&#x27;re out");
-    expect(html).toContain("border-red-500");
-    expect(html).toContain("text-red-400");
+    expect(html).toContain("✕");
+    expect(html).toContain("border-neutral-500");
+    expect(html).not.toContain("border-red-500");
+    expect(html).not.toContain("text-red-400");
+  });
+
+  it("shows a check next to a Yes", async () => {
+    expect(await statusHtml("confirmed")).toContain("✓");
   });
 
   it("leaves no response neutral", async () => {
     const html = await statusHtml("invited");
     expect(html).not.toContain("border-green-500");
     expect(html).not.toContain("border-red-500");
+  });
+});
+
+describe("RSVP spots filled", () => {
+  it("shows a partly filled bar with spots left", async () => {
+    const e = await makeEvent(FUTURE, { capacity: 4 });
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("1 of 4 spots");
+    expect(html).toContain("3 left");
+    expect(html).toContain('aria-valuenow="1"');
+    expect(html).toContain("width:25%");
+    expect(html).not.toContain(">Full<");
+  });
+
+  it("labels a full run without amber, since the red alert already flags it", async () => {
+    const e = await makeEvent(FUTURE, { capacity: 1 });
+    await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("1 of 1 spots");
+    expect(html).toContain(">Full<");
+    expect(html).not.toContain("amber");
+    expect(html).toContain("width:100%");
+  });
+});
+
+describe("RSVP header details", () => {
+  it("shows a today pill on the day of the run and none once it's past", async () => {
+    const today = await makeEvent(todayISO());
+    const a = await makeAttendee(today.id, { displayName: "A" });
+    expect(await render(await tokenOf(a.id))).toContain(">today<");
+
+    const past = await makeEvent("2020-01-01");
+    const b = await makeAttendee(past.id, { displayName: "B" });
+    const html = await render(await tokenOf(b.id));
+    expect(html).not.toContain(">today<");
+    expect(html).not.toMatch(/>in \d+ days?</);
+  });
+
+  it("shows the location name without a Map link when there's no address", async () => {
+    const e = await makeEvent(FUTURE);
+    await db.update(events).set({ locationName: "Main Gym" }).where(eq(events.id, e.id));
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain(">Main Gym<");
+    expect(html).not.toContain(">Map<");
+  });
+
+  it("falls back to the address as the title when there's no location name", async () => {
+    const e = await makeEvent(FUTURE);
+    await db.update(events).set({ locationAddress: "1 Gym Way, Town" }).where(eq(events.id, e.id));
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain(">1 Gym Way, Town<");
+    expect(html).toContain(">Map<");
+  });
+});
+
+describe("RSVP spots bar limits", () => {
+  it("caps the bar at 100% if the run is somehow over capacity", async () => {
+    const e = await makeEvent(FUTURE, { capacity: 1 });
+    await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    const b = await makeAttendee(e.id, { displayName: "B" }, "confirmed");
+    const html = await render(await tokenOf(b.id));
+    expect(html).toContain("2 of 1 spots");
+    expect(html).toContain("width:100%");
+    expect(html).toContain('aria-valuenow="1"');
   });
 });

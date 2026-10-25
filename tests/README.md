@@ -40,12 +40,12 @@ npx vitest run tests/components               # one folder
 | `flow.test.ts` | The core flow end to end (invite, confirm, +1, pay, no-show, archive summary, stats), plus paid toggles, +1 names, and removals |
 | `rsvp.test.ts` | The public yes/no link: yes confirms, no declines, bad token, full run, and no-show/archived/past runs are left alone |
 | `payment.test.ts` | The Venmo and Cash App link builders, plus a sanity check on the `PAYEES` list (unique names, at least one method each) |
-| `rsvp-page.test.tsx` | The public RSVP page's rendered output: who's in and pending count (people and +1s; skipped while that card is hidden), the confirmed count, green/red status card, the red full alert, the payment options grouped by person (Venmo, Zelle, Cash App; methods a person lacks are left out), Yes/No shown or hidden by date, bad tokens, plus the link-preview metadata (date-only, no names) and preview image |
+| `rsvp-page.test.tsx` | The public RSVP page's rendered output: who's in and pending count (people and +1s; skipped while that card is hidden), the spots-filled bar (left count, Full label, 100% cap), the header (date pill, location card and Map link, dividers), the green/gray status card, the red full alert, the payment options grouped by person (Venmo, Zelle, Cash App; methods a person lacks are left out), Yes/No shown or hidden by date, bad tokens, plus the link-preview metadata (date-only, no names) and preview image |
 | `roster.test.ts` | Creating and editing regulars, the per-organizer invite message, auth on the stats paging action |
 | `stats.test.ts` | Played and no-show counts, archived and future runs, runs per month, ad-hoc names, history paging |
 | `runDetails.test.ts` | Run time formatting and the address-to-maps-link builder |
 | `dates.test.ts` | Next Thursday, date formatting, "today" in the California timezone |
-| `components/*.test.tsx` | `StatusChip` (cycle and menu), `AttendeeList`, `RunCard`, `EventMenu` (archive/delete confirmations), `NewRunForm`, `PlusOneNameInput`, the add-player and edit-regular sheets, `StatsView`, `ArchivedRuns`, `RsvpButtons` (Yes-to-No warning), and the small buttons and bars |
+| `components/*.test.tsx` | `StatusChip` (cycle and menu), `AttendeeList`, `RunCard`, `EventMenu` (archive/delete confirmations), `NewRunForm`, `PlusOneNameInput`, the add-player and edit-regular sheets, `StatsView`, `ArchivedRuns`, `RsvpButtons` (selected state, No always enabled, Yes-to-No warning), and the small buttons and bars |
 
 Not covered: pages, the Google login flow and route protection (`src/auth.ts` allowlist, `src/proxy.ts`), and `AppHeader`.
 

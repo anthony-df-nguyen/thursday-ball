@@ -36,3 +36,24 @@ export function formatRunDateLong(iso: string) {
   const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
   return { date, weekday };
 }
+
+// "Thu, Oct 29"
+export function formatRunDateShort(iso: string) {
+  return new Date(iso + "T12:00").toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// "today", "tomorrow", "in 5 days"; empty once the date has passed.
+export function relativeDays(iso: string, now = new Date()) {
+  const days = Math.round(
+    (Date.parse(iso + "T00:00Z") - Date.parse(todayISO(now) + "T00:00Z")) /
+      86_400_000,
+  );
+  if (days < 0) return "";
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  return `in ${days} days`;
+}
