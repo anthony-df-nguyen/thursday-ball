@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // Absolute base for og:image URLs (previews need full URLs); falls back to
+  // Vercel's own URL when APP_URL isn't set.
+  metadataBase: process.env.APP_URL ? new URL(process.env.APP_URL) : undefined,
   title: "Thursday Ball",
   description: "Track who's playing ball on Thursdays.",
 };

@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, lt, or, sql } from "drizzle-orm";
+import { and, eq, lt, or } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { hasRoomSql } from "@/db/capacity";
 import { getPersonRuns } from "@/db/stats";
 import {
   events,
@@ -21,26 +22,6 @@ async function requireUserId() {
   if (!userId) throw new Error("Not signed in");
   return userId;
 }
-
-// Headcount = confirmed attendees + confirmed plus-ones (PRD §4.6). A
-// plus-one's own invite_status is tracked independently of the attendee
-// who's bringing them, so it counts (or doesn't) on its own merits.
-// This is the SQL form of that count, for use inside a conditional UPDATE so
-// the capacity check and the write are one statement (one round trip, and no
-// window between a separate read and write).
-const headcountSql = (eventId: string) => sql`(
-  (select count(*) from ${eventAttendees}
-    where ${eventAttendees.eventId} = ${eventId}
-      and ${eventAttendees.inviteStatus} = 'confirmed')
-  + (select count(*) from ${plusOnes}
-    join ${eventAttendees} on ${plusOnes.eventAttendeeId} = ${eventAttendees.id}
-    where ${eventAttendees.eventId} = ${eventId}
-      and ${plusOnes.inviteStatus} = 'confirmed')
-)`;
-
-const hasRoomSql = (eventId: string) => sql`${headcountSql(eventId)} < (
-  select ${events.capacity} from ${events} where ${events.id} = ${eventId}
-)`;
 
 // An UPDATE matched nothing: either the row is gone or the capacity guard
 // rejected it. Only runs on the failure path, so the extra read is free.

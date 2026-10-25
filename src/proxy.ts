@@ -8,7 +8,11 @@ export default auth((req) => {
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
   const isAuthApi = req.nextUrl.pathname.startsWith("/api/auth");
 
-  if (isAuthApi) return NextResponse.next();
+  // Recipients answer a text invite from this public page; the token in the
+  // URL is the credential.
+  const isRsvp = req.nextUrl.pathname.startsWith("/rsvp/");
+
+  if (isAuthApi || isRsvp) return NextResponse.next();
 
   if (!isLoggedIn && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));

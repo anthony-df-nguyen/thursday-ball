@@ -119,6 +119,9 @@ export const eventAttendees = pgTable(
       .notNull()
       .default("invited"),
     paid: boolean("paid").notNull().default(false),
+    // Unguessable secret for the public /rsvp/[token] yes/no page; the link
+    // is the credential, so non-organizers never need to log in.
+    rsvpToken: uuid("rsvp_token").notNull().unique().defaultRandom(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

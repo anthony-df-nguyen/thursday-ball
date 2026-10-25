@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { AttendeeList } from "@/components/AttendeeList";
@@ -26,6 +27,11 @@ export default async function EventDetailPage({
   params,
 }: PageProps<"/events/[eventId]">) {
   const { eventId } = await params;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const appUrl =
+    process.env.APP_URL ??
+    (host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : undefined);
 
   // Independent reads, fetched in parallel rather than one round trip after
   // another.
@@ -180,6 +186,7 @@ export default async function EventDetailPage({
             atCapacity={atCapacity}
             runHappened={runHappened}
             inviteMessage={currentUser?.defaultInviteMessage}
+            appUrl={appUrl}
             setInviteStatus={setInviteStatus}
             setPlusOneInviteStatus={setPlusOneInviteStatus}
             addPlusOne={addPlusOne}

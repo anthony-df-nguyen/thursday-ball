@@ -7,7 +7,7 @@ const steps = [
   },
   {
     title: "2. Build the invite list",
-    body: 'Open the run, then add people from the Roster or type a one-off name. Everyone starts as "Asked" until you hear back from them. If someone has a phone number saved on the Roster, tap the text icon next to their name to open a pre-filled text invite.',
+    body: 'Open the run, then add people from the Roster or type a one-off name. Everyone starts as "Asked" until you hear back from them. If someone has a phone number saved on the Roster, tap the text icon next to their name to open a pre-filled text invite. It includes a link where they can tap Yes or No themselves, and that updates their status here.',
   },
   {
     title: "3. Track responses",

@@ -21,6 +21,7 @@ type Attendee = {
   displayName: string | null;
   inviteStatus: InviteStatus;
   paid: boolean;
+  rsvpToken?: string;
   regular: { name: string; phone: string | null } | null;
   plusOnes: PlusOne[];
 };
@@ -31,6 +32,7 @@ export function AttendeeList({
   atCapacity,
   runHappened,
   inviteMessage,
+  appUrl,
   setInviteStatus,
   setPlusOneInviteStatus,
   addPlusOne,
@@ -45,6 +47,8 @@ export function AttendeeList({
   atCapacity: boolean;
   runHappened: boolean;
   inviteMessage?: string | null;
+  // Origin used to build each attendee's RSVP link in the text invite.
+  appUrl?: string;
   setInviteStatus: (
     eventId: string,
     attendeeId: string,
@@ -162,6 +166,11 @@ export function AttendeeList({
                 <TextInviteButton
                   phone={attendee.regular.phone}
                   message={inviteMessage}
+                  rsvpUrl={
+                    appUrl && attendee.rsvpToken
+                      ? `${appUrl}/rsvp/${attendee.rsvpToken}`
+                      : undefined
+                  }
                 />
               )}
               <AddPlusOneButton

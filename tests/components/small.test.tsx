@@ -62,6 +62,14 @@ describe("TextInviteButton", () => {
     );
   });
 
+  it("appends the RSVP link on its own line", () => {
+    render(<TextInviteButton phone="5551234" message="Ball?" rsvpUrl="https://x.test/rsvp/abc" />);
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      `sms:5551234?&body=${encodeURIComponent("Ball?\nhttps://x.test/rsvp/abc")}`,
+    );
+  });
+
   it("falls back to the default message", () => {
     render(<TextInviteButton phone="5551234" message={null} />);
     expect(screen.getByRole("link")).toHaveAttribute(
