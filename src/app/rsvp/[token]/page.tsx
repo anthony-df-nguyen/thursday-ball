@@ -4,6 +4,8 @@ import { and, count, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendees, plusOnes } from "@/db/schema";
 import { formatRunDateLong } from "@/lib/dates";
+import { formatRunTime, mapsUrl } from "@/lib/runDetails";
+import { VENMO_HANDLES, venmoUrl } from "@/lib/venmo";
 import { rsvpOpen, runForToken } from "@/lib/rsvp";
 import { RsvpButtons } from "@/components/RsvpButtons";
 import { respond, type RsvpResult } from "../actions";
@@ -24,18 +26,23 @@ export async function generateMetadata({
   const event = await runForToken(token);
   if (!event) return {};
   const long = formatRunDateLong(event.date);
-  const title = `🏀 Ball on ${long.weekday}, ${long.date}`;
+  const title = `🏀 Ball on ${long.weekday}, ${long.date}${
+    event.startTime ? ` at ${formatRunTime(event.startTime)}` : ""
+  }`;
   const description = "Tap to let us know if you're in.";
   return {
     title,
     description,
-    openGraph: { title, description, siteName: "Thursday Ball", type: "website" },
+    openGraph: {
+      title,
+      description,
+      siteName: "Thursday Ball",
+      type: "website",
+    },
   };
 }
 
-export default async function RsvpPage({
-  params,
-}:PageProps<"/rsvp/[token]">) {
+export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
   const { token } = await params;
 
   // Not a uuid -> can't match a token (and would error in Postgres).
@@ -59,7 +66,10 @@ export default async function RsvpPage({
     db
       .select({ n: count() })
       .from(plusOnes)
-      .innerJoin(eventAttendees, eq(plusOnes.eventAttendeeId, eventAttendees.id))
+      .innerJoin(
+        eventAttendees,
+        eq(plusOnes.eventAttendeeId, eventAttendees.id),
+      )
       .where(
         and(
           eq(eventAttendees.eventId, event.id),
@@ -108,24 +118,44 @@ export default async function RsvpPage({
 
   return (
     <div className="px-4 pt-10 pb-6 md:px-8 md:max-w-md">
-      <h2 className="text-xl font-medium">
-        {name ? `Hey ${name}, ` : ""}
-      </h2>
+      <h2 className="text-xl font-medium">{name ? `Hey ${name}, ` : ""}</h2>
       <p className="text-[15px] text-neutral-400 mt-1">
         Can you ball on {long.weekday}, {long.date}
+        {event.startTime && ` at ${formatRunTime(event.startTime)}`}
       </p>
+      {(event.locationAddress || event.locationName) && (
+        <p className="text-[15px] mt-1">
+          📍{" "}
+          {event.locationAddress ? (
+            <a
+              href={mapsUrl(event.locationAddress)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-accent underline"
+            >
+              {event.locationName ?? event.locationAddress}
+            </a>
+          ) : (
+            event.locationName
+          )}
+          {event.locationAddress && event.locationName && (
+            <span className="block text-[13px] text-neutral-400 ml-6">
+              {event.locationAddress}
+            </span>
+          )}
+        </p>
+      )}
 
       <p className="mt-4 text-[13px] text-neutral-400 leading-relaxed">
-        This RSVP page is just for you. Want to bring a +1? Please text the organizer directly to coordinate.
+        This RSVP page is just for you. Want to bring a +1? Please text the
+        organizer directly to coordinate.
       </p>
 
-      {open && (
-        <RsvpButtons
-          confirmed={attendee.inviteStatus === "confirmed"}
-          disabled={full}
-          yesAction={respond.bind(null, token, "yes")}
-          noAction={respond.bind(null, token, "no")}
-        />
+      {answered && (
+        <div className="mt-4 rounded-lg bg-surface shadow-sm px-4 py-3 flex items-center justify-between text-[13px]">
+          <span className="text-neutral-400">Your RSVP Status</span>
+          <span className="font-semibold text-text">{answered}</span>
+        </div>
       )}
 
       {message && (
@@ -137,16 +167,37 @@ export default async function RsvpPage({
         </p>
       )}
 
-      {answered && (
-        <div className="mt-4 rounded-lg bg-surface shadow-sm px-4 py-3 flex items-center justify-between text-[13px]">
-          <span className="text-neutral-400">Current answer</span>
-          <span className="font-semibold text-text">{answered}</span>
-        </div>
+      {open && (
+        <RsvpButtons
+          confirmed={attendee.inviteStatus === "confirmed"}
+          disabled={full}
+          yesAction={respond.bind(null, token, "yes")}
+          noAction={respond.bind(null, token, "no")}
+        />
       )}
 
-
-
       <div className="mt-4 rounded-lg bg-surface shadow-sm p-4">
+        <div className="font-heading font-medium text-[15px]">
+          Venmo Payment
+        </div>
+        <ul className="mt-2 flex flex-col gap-2">
+          {VENMO_HANDLES.map((handle) => (
+            <li key={handle}>
+              <a
+                href={venmoUrl(handle)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-accent underline text-[15px]"
+              >
+                @{handle}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Hide this for now */}
+      {/* <div className="mt-4 rounded-lg bg-surface shadow-sm p-4">
         <div className="font-heading font-medium text-[15px]">
           Who&apos;s Confirmed ({playing.length} / {event.capacity})
         </div>
@@ -165,7 +216,7 @@ export default async function RsvpPage({
           Waiting to hear back from {pending}{" "}
           {pending === 1 ? "person" : "people"}
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }

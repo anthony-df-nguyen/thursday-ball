@@ -66,11 +66,21 @@ describe("EventMenu", () => {
   });
 });
 
+const DEFAULTS = { startTime: "20:00", locationName: "Main Gym", locationAddress: "1 Gym Way, Town" };
+
 describe("NewRunForm", () => {
+  it("prefills the default time and location", async () => {
+    render(<NewRunForm createEvent={vi.fn(async () => {})} defaults={DEFAULTS} />);
+    await userEvent.click(screen.getByRole("button", { name: "+ New Run" }));
+    expect(screen.getByDisplayValue("20:00")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Main Gym")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("1 Gym Way, Town")).toBeInTheDocument();
+  });
+
   it("opens a form with the next Thursday prefilled", async () => {
     vi.useFakeTimers({ now: new Date("2026-10-21T12:00:00Z"), toFake: ["Date"] });
     try {
-      render(<NewRunForm createEvent={vi.fn(async () => {})} />);
+      render(<NewRunForm createEvent={vi.fn(async () => {})} defaults={DEFAULTS} />);
       await userEvent.click(screen.getByRole("button", { name: "+ New Run" }));
       expect(screen.getByDisplayValue("2026-10-22")).toBeInTheDocument();
     } finally {

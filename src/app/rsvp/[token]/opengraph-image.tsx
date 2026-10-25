@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { formatRunDateLong } from "@/lib/dates";
+import { formatRunTime } from "@/lib/runDetails";
 import { runForToken } from "@/lib/rsvp";
 
 export const alt = "Thursday Ball RSVP";
@@ -37,6 +38,7 @@ export default async function Image({
         {long && (
           <div style={{ fontSize: 52, color: "#b5abfc", marginTop: 12, display: "flex" }}>
             {long.weekday}, {long.date}
+            {event?.startTime && ` · ${formatRunTime(event.startTime)}`}
           </div>
         )}
         <div style={{ fontSize: 40, color: "#b2b6ca", marginTop: 28, display: "flex" }}>

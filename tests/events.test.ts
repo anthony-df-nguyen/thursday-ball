@@ -36,6 +36,26 @@ describe("event lifecycle", () => {
     expect(e).toMatchObject({ date: "2026-11-05", status: "open", capacity: 15 });
   });
 
+  it("createEvent stores time and location, and ignores a malformed time", async () => {
+    const fd = new FormData();
+    fd.set("date", "2026-11-05");
+    fd.set("startTime", "19:30");
+    fd.set("locationName", "  Main Gym ");
+    fd.set("locationAddress", " 1 Gym Way, Town ");
+    await expect(createEvent(fd)).rejects.toThrow("NEXT_REDIRECT");
+    const bad = new FormData();
+    bad.set("date", "2026-11-12");
+    bad.set("startTime", "nonsense");
+    await expect(createEvent(bad)).rejects.toThrow("NEXT_REDIRECT");
+    const rows = await db.select().from(events).orderBy(events.date);
+    expect(rows[0]).toMatchObject({
+      startTime: "19:30",
+      locationName: "Main Gym",
+      locationAddress: "1 Gym Way, Town",
+    });
+    expect(rows[1]).toMatchObject({ startTime: null, locationName: null, locationAddress: null });
+  });
+
   it("archive hides the run and unarchive restores it", async () => {
     const e = await makeEvent("2026-11-05");
     await expect(archiveEvent(e.id)).rejects.toThrow("NEXT_REDIRECT");

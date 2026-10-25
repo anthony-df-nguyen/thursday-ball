@@ -36,12 +36,13 @@ npx vitest run tests/components               # one folder
 | File | Covers |
 | --- | --- |
 | `capacity.test.ts` | The 15-person cap: confirmed attendees and +1s count, invited and declined don't, confirming is blocked when full |
-| `events.test.ts` | Create, archive, unarchive and delete (with cascade), adding attendees, deleting a regular, archived-run paging, signed-out rejection |
+| `events.test.ts` | Create (with time and location), archive, unarchive and delete (with cascade), adding attendees, deleting a regular, archived-run paging, signed-out rejection |
 | `flow.test.ts` | The core flow end to end (invite, confirm, +1, pay, no-show, archive summary, stats), plus paid toggles, +1 names, and removals |
 | `rsvp.test.ts` | The public yes/no link: yes confirms, no declines, bad token, full run, and no-show/archived/past runs are left alone |
-| `rsvp-page.test.tsx` | The public RSVP page's rendered output: who's in, pending count (people and +1s), the red full alert, Yes/No shown or hidden by date, bad tokens, plus the link-preview metadata (date-only, no names) and preview image |
+| `rsvp-page.test.tsx` | The public RSVP page's rendered output: who's in and pending count (people and +1s; skipped while that card is hidden), the red full alert, the Venmo payment links, Yes/No shown or hidden by date, bad tokens, plus the link-preview metadata (date-only, no names) and preview image |
 | `roster.test.ts` | Creating and editing regulars, the per-organizer invite message, auth on the stats paging action |
 | `stats.test.ts` | Played and no-show counts, archived and future runs, runs per month, ad-hoc names, history paging |
+| `runDetails.test.ts` | Run time formatting and the address-to-maps-link builder |
 | `dates.test.ts` | Next Thursday, date formatting, "today" in the California timezone |
 | `components/*.test.tsx` | `StatusChip` (cycle and menu), `AttendeeList`, `RunCard`, `EventMenu` (archive/delete confirmations), `NewRunForm`, `PlusOneNameInput`, the add-player and edit-regular sheets, `StatsView`, `ArchivedRuns`, `RsvpButtons` (Yes-to-No warning), and the small buttons and bars |
 

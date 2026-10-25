@@ -67,6 +67,11 @@ export const events = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     date: date("date").notNull(),
+    // "HH:MM" (24h), the place's name, and its street address. All optional; runs made
+    // before these existed have none.
+    startTime: text("start_time"),
+    locationName: text("location_name"),
+    locationAddress: text("location_address"),
     status: text("status", { enum: eventStatusValues })
       .notNull()
       .default("open"),

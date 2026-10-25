@@ -5,6 +5,7 @@ import { events } from "@/db/schema";
 import { createEvent, getArchivedRuns } from "./actions";
 import { ArchivedRuns } from "@/components/ArchivedRuns";
 import { NewRunForm } from "@/components/NewRunForm";
+import { runDefaults } from "@/lib/runDetails";
 import { RunCard } from "@/components/RunCard";
 
 export default async function RunsPage() {
@@ -22,7 +23,7 @@ export default async function RunsPage() {
     <div className="flex-1 px-4 pt-5 pb-6 md:px-8 md:pt-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-medium">Runs</h2>
-        <NewRunForm createEvent={createEvent} />
+        <NewRunForm createEvent={createEvent} defaults={runDefaults()} />
       </div>
 
       <Link

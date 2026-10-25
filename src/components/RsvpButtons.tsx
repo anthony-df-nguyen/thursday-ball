@@ -26,7 +26,7 @@ export function RsvpButtons({
           <button
             type="submit"
             disabled={disabled}
-            className="w-full h-12 rounded-lg bg-accent font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-lg bg-accent font-semibold text-white disabled:opacity-20 disabled:cursor-not-allowed"
           >
             Yes
           </button>
@@ -36,7 +36,7 @@ export function RsvpButtons({
             type={confirmed ? "button" : "submit"}
             onClick={confirmed ? () => setWarning(true) : undefined}
             disabled={disabled}
-            className="w-full h-12 rounded-lg bg-surface shadow-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-lg bg-surface shadow-sm font-semibold disabled:opacity-20 disabled:cursor-not-allowed"
           >
             No
           </button>

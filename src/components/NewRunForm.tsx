@@ -6,8 +6,10 @@ import { Sheet } from "./Sheet";
 
 export function NewRunForm({
   createEvent,
+  defaults,
 }: {
   createEvent: (formData: FormData) => Promise<void>;
+  defaults: { startTime: string; locationName: string; locationAddress: string };
 }) {
   const [open, setOpen] = useState(false);
 
@@ -39,6 +41,29 @@ export function NewRunForm({
             name="date"
             required
             defaultValue={nextThursdayISO()}
+          />
+          <label className="text-[11px] tracking-[0.08em] uppercase text-neutral-400">Time</label>
+          <input
+            className="input min-h-[46px] w-full min-w-0 max-w-full box-border"
+            type="time"
+            name="startTime"
+            defaultValue={defaults.startTime}
+          />
+          <label className="text-[11px] tracking-[0.08em] uppercase text-neutral-400">Location</label>
+          <input
+            className="input min-h-[46px] w-full"
+            type="text"
+            name="locationName"
+            placeholder="Court name"
+            defaultValue={defaults.locationName}
+          />
+          <input
+            className="input min-h-[46px] w-full"
+            type="text"
+            name="locationAddress"
+            placeholder="Address (123 Main St, City)"
+            autoComplete="street-address"
+            defaultValue={defaults.locationAddress}
           />
           <button type="submit" className="btn btn-filled btn-block min-h-12">
             Create Run

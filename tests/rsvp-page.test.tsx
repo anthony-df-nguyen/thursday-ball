@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { eventAttendees } from "@/db/schema";
+import { eventAttendees, events } from "@/db/schema";
 import RsvpPage, { generateMetadata } from "@/app/rsvp/[token]/page";
 import OgImage from "@/app/rsvp/[token]/opengraph-image";
 import { todayISO } from "@/lib/dates";
@@ -29,7 +29,9 @@ beforeEach(async () => {
 });
 
 describe("RSVP page", () => {
-  it("lists who's in, with their confirmed +1s, and the cap", async () => {
+  // Skipped while the "Who's Confirmed" card is hidden on the page (see the
+  // "Hide this for now" comment in rsvp/[token]/page.tsx). Re-enable with it.
+  it.skip("lists who's in, with their confirmed +1s, and the cap", async () => {
     const e = await makeEvent(FUTURE, { capacity: 15 });
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const a = await makeAttendee(e.id, { displayName: "Alice" }, "confirmed");
@@ -43,7 +45,9 @@ describe("RSVP page", () => {
     expect(html).not.toContain("Declan");
   });
 
-  it("counts Asked people and Asked +1s as pending", async () => {
+  // Skipped while the "Who's Confirmed" card is hidden on the page (see the
+  // "Hide this for now" comment in rsvp/[token]/page.tsx). Re-enable with it.
+  it.skip("counts Asked people and Asked +1s as pending", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
     await makeAttendee(e.id, { displayName: "B" });
@@ -59,14 +63,14 @@ describe("RSVP page", () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const yes = await makeAttendee(e.id, { displayName: "Yes" }, "confirmed");
-    expect(await render(await tokenOf(me.id))).toContain("Current answer</span><span");
+    expect(await render(await tokenOf(me.id))).toContain("Your RSVP Status</span><span");
     expect(await render(await tokenOf(me.id))).toContain(">No response yet<");
     const yesHtml = await render(await tokenOf(yes.id));
-    expect(yesHtml).toContain("Current answer</span><span");
+    expect(yesHtml).toContain("Your RSVP Status</span><span");
     expect(yesHtml).toContain(">You&#x27;re in<");
   });
 
-  it("doesn't repeat a yes/no result as a message; the Current answer card is enough", async () => {
+  it("doesn't repeat a yes/no result as a message; the Your RSVP Status card is enough", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" }, "confirmed");
     const html = await render(await tokenOf(me.id), "yes");
@@ -79,7 +83,9 @@ describe("RSVP page", () => {
     expect(noHtml).not.toContain("Thanks for letting us know");
   });
 
-  it("uses singular for one pending person", async () => {
+  // Skipped while the "Who's Confirmed" card is hidden on the page (see the
+  // "Hide this for now" comment in rsvp/[token]/page.tsx). Re-enable with it.
+  it.skip("uses singular for one pending person", async () => {
     const e = await makeEvent(FUTURE);
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
@@ -107,7 +113,7 @@ describe("RSVP page", () => {
     expect(html.match(/this run is full right now/g)).toHaveLength(1);
   });
 
-  it("shows the full notice above Current answer even with a leftover ?r= in the URL", async () => {
+  it("shows the full notice above the Yes/No buttons even with a leftover ?r= in the URL", async () => {
     const e = await makeEvent(FUTURE, { capacity: 1 });
     await makeAttendee(e.id, { displayName: "A" }, "confirmed");
     const me = await makeAttendee(e.id, { displayName: "Me" });
@@ -115,7 +121,7 @@ describe("RSVP page", () => {
     for (const r of [undefined, "yes", "no", "closed"]) {
       const html = await render(token, r);
       expect(html).toContain('role="alert"');
-      expect(html.indexOf("this run is full right now")).toBeLessThan(html.indexOf("Current answer"));
+      expect(html.indexOf("this run is full right now")).toBeLessThan(html.indexOf(">Yes<"));
     }
   });
 
@@ -222,5 +228,43 @@ describe("RSVP preview image", () => {
       expect(res.headers.get("content-type")).toBe("image/png");
       expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(1000);
     }
+  });
+});
+
+describe("RSVP time and location", () => {
+  it("shows the time and links the location", async () => {
+    const e = await makeEvent(FUTURE);
+    await db.update(events).set({
+      startTime: "20:00",
+      locationName: "Main Gym",
+      locationAddress: "1 Gym Way, Town",
+    }).where(eq(events.id, e.id));
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("at 8:00 PM");
+    expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=1%20Gym%20Way%2C%20Town"');
+    expect(html).toContain("1 Gym Way, Town</span>");
+    expect(html).toContain(">Main Gym<");
+  });
+
+  it("omits both for runs without them", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).not.toContain("📍");
+    expect(html).not.toContain(" at ");
+  });
+});
+
+describe("RSVP payment section", () => {
+  it("links each Venmo account", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("Payment");
+    expect(html).toContain('href="https://account.venmo.com/u/UmerMemon"');
+    expect(html).toContain("@UmerMemon");
+    expect(html).toContain('href="https://account.venmo.com/u/anthony10101"');
+    expect(html).toContain('href="https://account.venmo.com/u/Alvintphan"');
   });
 });

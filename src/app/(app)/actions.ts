@@ -102,10 +102,19 @@ export async function createEvent(formData: FormData) {
   const userId = await requireUserId();
   const date = String(formData.get("date") ?? "");
   if (!date) return;
+  const startTime = String(formData.get("startTime") ?? "");
+  const locationName = String(formData.get("locationName") ?? "").trim();
+  const locationAddress = String(formData.get("locationAddress") ?? "").trim();
 
   const [created] = await db
     .insert(events)
-    .values({ date, createdBy: userId })
+    .values({
+      date,
+      startTime: /^\d{2}:\d{2}$/.test(startTime) ? startTime : null,
+      locationName: locationName || null,
+      locationAddress: locationAddress || null,
+      createdBy: userId,
+    })
     .returning();
 
   redirect(`/events/${created.id}`);
