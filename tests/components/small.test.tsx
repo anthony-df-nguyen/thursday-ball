@@ -43,12 +43,29 @@ describe("HeadcountBar", () => {
   });
 
   it.each([
-    [9, "bg-red-500"],
-    [10, "bg-orange-500"],
-    [12, "bg-yellow-500"],
-    [13, "bg-green-500"],
-  ])("colors %i people with %s", (n, cls) => {
-    const { container } = render(<HeadcountBar headcount={n} capacity={15} />);
+    // full court, capacity 14: need 10 to play
+    [9, 14, "bg-red-500"],
+    [10, 14, "bg-orange-500"],
+    [11, 14, "bg-orange-500"],
+    [12, 14, "bg-yellow-500"],
+    [13, 14, "bg-green-500"],
+    [14, 14, "bg-green-500"],
+    // capacity 10 is still full court
+    [9, 10, "bg-red-500"],
+    [10, 10, "bg-green-500"],
+    // half court, capacity 8: 2v2 is the floor, 4v4 is full
+    [3, 8, "bg-red-500"],
+    [4, 8, "bg-orange-500"],
+    [5, 8, "bg-orange-500"],
+    [6, 8, "bg-yellow-500"],
+    [7, 8, "bg-green-500"],
+    [8, 8, "bg-green-500"],
+    // tiny caps never go orange
+    [3, 6, "bg-red-500"],
+    [4, 6, "bg-yellow-500"],
+    [5, 6, "bg-green-500"],
+  ])("colors %i people at capacity %i with %s", (n, cap, cls) => {
+    const { container } = render(<HeadcountBar headcount={n} capacity={cap} />);
     expect(segments(container)[0].className).toContain(cls);
   });
 });
