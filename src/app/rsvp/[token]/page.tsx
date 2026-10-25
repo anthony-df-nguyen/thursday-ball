@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { eventAttendees, plusOnes } from "@/db/schema";
 import { formatRunDateLong } from "@/lib/dates";
 import { formatRunTime, mapsUrl } from "@/lib/runDetails";
-import { VENMO_HANDLES, venmoUrl } from "@/lib/venmo";
+import { VENMO_HANDLES, ZELLE_ACCOUNTS, venmoUrl } from "@/lib/payment";
 import { rsvpOpen, runForToken } from "@/lib/rsvp";
 import { RsvpButtons } from "@/components/RsvpButtons";
 import { respond, type RsvpResult } from "../actions";
@@ -99,11 +99,11 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
   const open = rsvpOpen(event) && attendee.inviteStatus !== "no_show";
   const answered =
     attendee.inviteStatus === "confirmed"
-      ? "You're in"
+      ? { label: "You're in", tone: "green" as const }
       : attendee.inviteStatus === "declined"
-        ? "You're out"
+        ? { label: "You're out", tone: "red" as const }
         : attendee.inviteStatus === "invited"
-          ? "No response yet"
+          ? { label: "No response yet", tone: "neutral" as const }
           : null;
   const long = formatRunDateLong(event.date);
   // Full for them: anyone who isn't already in (Asked, or said No earlier)
@@ -119,12 +119,12 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
   return (
     <div className="px-4 pt-10 pb-6 md:px-8 md:max-w-md">
       <h2 className="text-xl font-medium">{name ? `Hey ${name}, ` : ""}</h2>
-      <p className="text-[15px] text-neutral-400 mt-1">
-        Can you ball on {long.weekday}, {long.date}
-        {event.startTime && ` at ${formatRunTime(event.startTime)}`}
+      <p className="text-sm text-neutral-400 mt-2">
+        Ball on <span className="font-bold">{long.date}</span>
+        {event.startTime && ` at ${formatRunTime(event.startTime)}`}?
       </p>
       {(event.locationAddress || event.locationName) && (
-        <p className="text-[15px] mt-1">
+        <p className="text-sm mt-4">
           📍{" "}
           {event.locationAddress ? (
             <a
@@ -139,22 +139,35 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
             event.locationName
           )}
           {event.locationAddress && event.locationName && (
-            <span className="block text-[13px] text-neutral-400 ml-6">
+            <span className="block text-sm text-neutral-400">
               {event.locationAddress}
             </span>
           )}
         </p>
       )}
 
-      <p className="mt-4 text-[13px] text-neutral-400 leading-relaxed">
-        This RSVP page is just for you. Want to bring a +1? Please text the
-        organizer directly to coordinate.
-      </p>
-
       {answered && (
-        <div className="mt-4 rounded-lg bg-surface shadow-sm px-4 py-3 flex items-center justify-between text-[13px]">
+        <div
+          className={`mt-8 rounded-lg px-4 py-3 flex items-center justify-between text-[13px] ${
+            answered.tone === "green"
+              ? "border-2 border-green-500 bg-green-500/15"
+              : answered.tone === "red"
+                ? "border-2 border-red-500 bg-red-500/15"
+                : "bg-surface shadow-sm"
+          }`}
+        >
           <span className="text-neutral-400">Your RSVP Status</span>
-          <span className="font-semibold text-text">{answered}</span>
+          <span
+            className={`font-semibold ${
+              answered.tone === "green"
+                ? "text-green-400"
+                : answered.tone === "red"
+                  ? "text-red-400"
+                  : "text-text"
+            }`}
+          >
+            {answered.label}
+          </span>
         </div>
       )}
 
@@ -176,11 +189,19 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
         />
       )}
 
+      <p className="text-md mt-8 text-center">
+        🏀 {playing.length} people are going so far.{" "}
+      </p>
+
+      <p className="mt-8 text-sm text-neutral-400 leading-relaxed">
+        This RSVP page is just for you. Want to bring a +1? Please text the
+        organizer directly to coordinate.
+      </p>
+
       <div className="mt-4 rounded-lg bg-surface shadow-sm p-4">
-        <div className="font-heading font-medium text-[15px]">
-          Venmo Payment
-        </div>
-        <ul className="mt-2 flex flex-col gap-2">
+        <div className="font-heading font-medium text-[15px]">Payment</div>
+        <div className="mt-2 text-[13px] text-neutral-400">Venmo</div>
+        <ul className="mt-1 flex flex-col gap-2">
           {VENMO_HANDLES.map((handle) => (
             <li key={handle}>
               <a
@@ -191,6 +212,16 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
               >
                 @{handle}
               </a>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 text-[13px] text-neutral-400">Zelle</div>
+        <ul className="mt-2 flex flex-col gap-2">
+          {ZELLE_ACCOUNTS.map((z) => (
+            <li key={z.phone} className="text-[15px]">
+              <span className="font-semibold">{z.name} {"  "}</span>
+              <span className="ml-1 text-neutral-400">{z.phone}</span>
+              
             </li>
           ))}
         </ul>

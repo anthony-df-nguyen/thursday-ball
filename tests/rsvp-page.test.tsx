@@ -262,9 +262,60 @@ describe("RSVP payment section", () => {
     const me = await makeAttendee(e.id, { displayName: "Me" });
     const html = await render(await tokenOf(me.id));
     expect(html).toContain("Payment");
+    expect(html).toContain("Zelle");
+    expect(html).toContain("714-791-1606");
     expect(html).toContain('href="https://account.venmo.com/u/UmerMemon"');
     expect(html).toContain("@UmerMemon");
     expect(html).toContain('href="https://account.venmo.com/u/anthony10101"');
     expect(html).toContain('href="https://account.venmo.com/u/Alvintphan"');
+  });
+});
+
+describe("RSVP confirmed count", () => {
+  it("counts confirmed people and their confirmed +1s, not Asked or declined", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    const a = await makeAttendee(e.id, { displayName: "Alice" }, "confirmed");
+    await makePlusOne(a.id, "confirmed");
+    await makePlusOne(a.id, "invited");
+    await makeAttendee(e.id, { displayName: "Declan" }, "declined");
+    await makeAttendee(e.id, { displayName: "Bo" });
+
+    const html = await render(await tokenOf(me.id));
+    expect(html).toContain("2 people are going so far");
+    expect(html).not.toContain("Alice");
+  });
+
+  it("shows 0 when nobody has confirmed", async () => {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" });
+    expect(await render(await tokenOf(me.id))).toContain("0 people are going so far");
+  });
+});
+
+describe("RSVP status colors", () => {
+  async function statusHtml(status: "confirmed" | "declined" | "invited") {
+    const e = await makeEvent(FUTURE);
+    const me = await makeAttendee(e.id, { displayName: "Me" }, status);
+    return render(await tokenOf(me.id));
+  }
+
+  it("shows a Yes in green", async () => {
+    const html = await statusHtml("confirmed");
+    expect(html).toContain("border-green-500");
+    expect(html).toContain("text-green-400");
+  });
+
+  it("shows a No in red", async () => {
+    const html = await statusHtml("declined");
+    expect(html).toContain("You&#x27;re out");
+    expect(html).toContain("border-red-500");
+    expect(html).toContain("text-red-400");
+  });
+
+  it("leaves no response neutral", async () => {
+    const html = await statusHtml("invited");
+    expect(html).not.toContain("border-green-500");
+    expect(html).not.toContain("border-red-500");
   });
 });
