@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import posthog from "posthog-js";
 import type { InviteStatus } from "@/db/schema";
 
 const CHIP: Record<InviteStatus, { label: string; className: string }> = {
@@ -85,7 +86,10 @@ export function StatusChip({
             return;
           }
           let next = NEXT[status];
-          if (next === "confirmed" && atCapacity) next = "declined";
+          if (next === "confirmed" && atCapacity) {
+            posthog.capture("capacity_blocked", { source: "status_chip", event_id: eventId });
+            next = "declined";
+          }
           choose(next);
         }}
         className={`flex min-w-10 h-5 items-center justify-center rounded-sm border px-1.5 font-heading text-[9px] font-bold tracking-[0.04em] ${

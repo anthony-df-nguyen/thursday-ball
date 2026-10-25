@@ -176,6 +176,7 @@ export function AttendeeList({
               )}
               {attendee.regular?.phone && (
                 <TextInviteButton
+                  eventId={eventId}
                   phone={attendee.regular.phone}
                   message={inviteMessage}
                   rsvpUrl={
@@ -246,6 +247,7 @@ export function AttendeeList({
                     />
                     <RemoveButton
                       ariaLabel="Remove +1"
+                      trackAs="plus_one_removed"
                       eventId={eventId}
                       id={plusOne.id}
                       remove={removePlusOne}
@@ -256,6 +258,7 @@ export function AttendeeList({
                         id={plusOne.id}
                         paid={plusOne.paid}
                         ariaLabel="Toggle +1 paid"
+                        trackAs="plus_one_payment_updated"
                         setPaid={setPlusOnePaid}
                       />
                     ) : (

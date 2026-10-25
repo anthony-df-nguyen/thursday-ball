@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { nextThursdayISO } from "@/lib/dates";
+import { MAX_CAPACITY } from "@/lib/runDetails";
 import { Sheet } from "./Sheet";
 
 export function NewRunForm({
@@ -9,7 +11,7 @@ export function NewRunForm({
   defaults,
 }: {
   createEvent: (formData: FormData) => Promise<void>;
-  defaults: { startTime: string; locationName: string; locationAddress: string };
+  defaults: { capacity: number; startTime: string; locationName: string; locationAddress: string };
 }) {
   const [open, setOpen] = useState(false);
 
@@ -32,6 +34,7 @@ export function NewRunForm({
         </div>
         <form
           action={createEvent}
+          onSubmit={() => posthog.capture("run_creation_submitted")}
           className="mt-2.5 flex flex-col gap-2.5"
         >
           <label className="text-[11px] tracking-[0.08em] uppercase text-neutral-400">Date</label>
@@ -48,6 +51,23 @@ export function NewRunForm({
             type="time"
             name="startTime"
             defaultValue={defaults.startTime}
+          />
+          <label
+            htmlFor="new-run-capacity"
+            className="text-[11px] tracking-[0.08em] uppercase text-neutral-400"
+          >
+            Capacity
+          </label>
+          <input
+            id="new-run-capacity"
+            className="input min-h-[46px] w-full"
+            type="number"
+            name="capacity"
+            inputMode="numeric"
+            required
+            min={1}
+            max={MAX_CAPACITY}
+            defaultValue={defaults.capacity}
           />
           <label className="text-[11px] tracking-[0.08em] uppercase text-neutral-400">Location</label>
           <input

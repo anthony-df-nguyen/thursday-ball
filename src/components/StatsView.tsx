@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { MdCheck, MdClose } from "react-icons/md";
 import type { PersonStats, RunEntry } from "@/db/stats";
 import { formatRunDate } from "@/lib/dates";
@@ -10,6 +11,16 @@ type Month = { key: string; short: string; long: string };
 type Metric = "played" | "noShows";
 
 const EVERYONE = "everyone";
+
+// Ids only: roster ids pass through, but a former player's key is
+// "name:<name>", which must not reach analytics.
+function playerProps(key: string) {
+  return key === EVERYONE
+    ? { player_type: "everyone" }
+    : key.startsWith("name:")
+      ? { player_type: "former" }
+      : { player_type: "regular", player_id: key };
+}
 
 const METRICS: { id: Metric; tab: string; title: string; noun: string }[] = [
   { id: "played", tab: "Runs played", title: "Runs played per month", noun: "played" },
@@ -174,6 +185,15 @@ export function StatsView({
   const [moreRuns, setMoreRuns] = useState<Record<string, RunEntry[]>>({});
   const [loadingMore, startLoadingMore] = useTransition();
 
+  const selectPlayer = (key: string, source: "dropdown" | "back" | "ranked_list") => {
+    posthog.capture("stats_person_selected", { ...playerProps(key), source });
+    setWho(key);
+  };
+  const selectMetric = (id: Metric) => {
+    posthog.capture("stats_metric_changed", { metric: id, ...playerProps(who) });
+    setMetric(id);
+  };
+
   const person = people.find((p) => p.key === who);
   const subjects = person ? [person] : people;
   // Everyone: one chart of runs held per month. A single player: their own
@@ -199,6 +219,10 @@ export function StatsView({
   const runs = person ? [...person.runs, ...(moreRuns[person.key] ?? [])] : [];
   const loadMore = () => {
     if (!person) return;
+    posthog.capture("stats_runs_loaded_more", {
+      ...playerProps(person.key),
+      loaded_so_far: runs.length,
+    });
     startLoadingMore(async () => {
       const next = await loadMoreRuns(person.key, runs.length);
       setMoreRuns((prev) => ({
@@ -222,7 +246,7 @@ export function StatsView({
           {person && (
             <button
               type="button"
-              onClick={() => setWho(EVERYONE)}
+              onClick={() => selectPlayer(EVERYONE, "back")}
               className="bg-transparent border-0 p-0 cursor-pointer text-[13px] font-semibold text-accent"
             >
               ← Back to Everyone
@@ -231,7 +255,7 @@ export function StatsView({
         </span>
         <select
           value={who}
-          onChange={(e) => setWho(e.target.value)}
+          onChange={(e) => selectPlayer(e.target.value, "dropdown")}
           className="input min-h-11 min-w-0 max-w-full"
         >
           <option value={EVERYONE}>Everyone (Overview)</option>
@@ -274,7 +298,7 @@ export function StatsView({
                 type="button"
                 role="tab"
                 aria-selected={metric === m.id}
-                onClick={() => setMetric(m.id)}
+                onClick={() => selectMetric(m.id)}
                 className={`flex-1 min-h-10 rounded-[6px] border-0 cursor-pointer font-heading font-semibold text-[13px] ${
                   metric === m.id ? "bg-accent-800 text-accent-100" : "bg-transparent text-neutral-400"
                 }`}
@@ -383,7 +407,7 @@ export function StatsView({
               <button
                 key={p.key}
                 type="button"
-                onClick={() => setWho(p.key)}
+                onClick={() => selectPlayer(p.key, "ranked_list")}
                 className="w-full flex items-center gap-2 px-3.5 min-h-11 bg-transparent border-0 border-b border-divider last:border-b-0 cursor-pointer text-left text-text"
               >
                 <span className="flex-1 min-w-0 truncate text-[13px] font-semibold">{p.name}</span>

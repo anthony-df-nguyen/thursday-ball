@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, lt, or } from "drizzle-orm";
+import { and, eq, lt, or, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { hasRoomSql } from "@/db/capacity";
+import { hasRoomSql, headcountSql } from "@/db/capacity";
 import { getPersonRuns } from "@/db/stats";
+import { logPostHogServerAction } from "@/lib/posthogLogs";
+import { cleanText, parseCapacity } from "@/lib/runDetails";
 import {
   events,
   eventAttendees,
@@ -103,21 +105,85 @@ export async function createEvent(formData: FormData) {
   const date = String(formData.get("date") ?? "");
   if (!date) return;
   const startTime = String(formData.get("startTime") ?? "");
-  const locationName = String(formData.get("locationName") ?? "").trim();
-  const locationAddress = String(formData.get("locationAddress") ?? "").trim();
+  const locationName = cleanText(formData.get("locationName"));
+  const locationAddress = cleanText(formData.get("locationAddress"));
+  // Missing or invalid falls back to the column default.
+  const capacity = parseCapacity(formData.get("capacity")) ?? undefined;
 
   const [created] = await db
     .insert(events)
     .values({
       date,
       startTime: /^\d{2}:\d{2}$/.test(startTime) ? startTime : null,
-      locationName: locationName || null,
-      locationAddress: locationAddress || null,
+      locationName,
+      locationAddress,
+      capacity,
       createdBy: userId,
     })
     .returning();
 
+  logPostHogServerAction("event created", { operation: "create_event" });
   redirect(`/events/${created.id}`);
+}
+
+export type UpdateEventResult =
+  | { ok: true }
+  | { ok: false; error: "invalid" | "not_found" | "capacity_below_headcount" };
+
+// Edits capacity and location. Capacity can't drop below the current
+// headcount: the check is part of the UPDATE, so a confirm landing at the
+// same moment can't slip past it. An unchanged capacity is always allowed, so
+// a location fix still works on a run that is somehow over its cap.
+export async function updateEvent(
+  eventId: string,
+  formData: FormData,
+): Promise<UpdateEventResult> {
+  await requireUserId();
+  const capacity = parseCapacity(formData.get("capacity"));
+  if (capacity === null) return { ok: false, error: "invalid" };
+  const locationName = cleanText(formData.get("locationName"));
+  const locationAddress = cleanText(formData.get("locationAddress"));
+
+  const current = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+  });
+  if (!current) return { ok: false, error: "not_found" };
+
+  const changed = [
+    capacity !== current.capacity && "capacity",
+    locationName !== current.locationName && "location_name",
+    locationAddress !== current.locationAddress && "location_address",
+  ].filter(Boolean) as string[];
+  if (changed.length === 0) return { ok: true };
+
+  const updated = await db
+    .update(events)
+    .set({ capacity, locationName, locationAddress })
+    .where(
+      and(
+        eq(events.id, eventId),
+        or(
+          eq(events.capacity, capacity),
+          sql`${capacity} >= ${headcountSql(eventId)}`,
+        ),
+      ),
+    )
+    .returning();
+  if (updated.length === 0) {
+    const row = await db.query.events.findFirst({
+      where: eq(events.id, eventId),
+      columns: { id: true },
+    });
+    return { ok: false, error: row ? "capacity_below_headcount" : "not_found" };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/events/${eventId}`);
+  logPostHogServerAction("event updated", {
+    operation: "update_event",
+    fields_changed: changed.join(","),
+  });
+  return { ok: true };
 }
 
 // Hard delete: cascades to attendees and +1s, so the run never counts toward
@@ -271,6 +337,10 @@ export async function setInviteStatus(
   }
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/stats");
+  logPostHogServerAction("attendee invite status updated", {
+    operation: "set_invite_status",
+    status,
+  });
 }
 
 export async function setAttendeePaid(

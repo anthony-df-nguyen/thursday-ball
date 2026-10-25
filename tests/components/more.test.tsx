@@ -23,9 +23,19 @@ describe("EventMenu", () => {
       deleteEvent: vi.fn(async () => {}),
       archiveEvent: vi.fn(async () => {}),
       unarchiveEvent: vi.fn(async () => {}),
+      updateEvent: vi.fn(async () => ({ ok: true }) as const),
     };
     render(
-      <EventMenu eventId="e1" archived={false} allPaid={false} unpaidCount={2} {...fns} {...over} />,
+      <EventMenu
+        eventId="e1"
+        archived={false}
+        allPaid={false}
+        unpaidCount={2}
+        run={{ capacity: 15, locationName: "Main Gym", locationAddress: "1 Gym Way" }}
+        headcount={4}
+        {...fns}
+        {...over}
+      />,
     );
     return fns;
   }
@@ -66,7 +76,7 @@ describe("EventMenu", () => {
   });
 });
 
-const DEFAULTS = { startTime: "20:00", locationName: "Main Gym", locationAddress: "1 Gym Way, Town" };
+const DEFAULTS = { capacity: 14, startTime: "20:00", locationName: "Main Gym", locationAddress: "1 Gym Way, Town" };
 
 describe("NewRunForm", () => {
   it("prefills the default time and location", async () => {
@@ -75,6 +85,12 @@ describe("NewRunForm", () => {
     expect(screen.getByDisplayValue("20:00")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Main Gym")).toBeInTheDocument();
     expect(screen.getByDisplayValue("1 Gym Way, Town")).toBeInTheDocument();
+  });
+
+  it("prefills capacity with the default", async () => {
+    render(<NewRunForm createEvent={vi.fn(async () => {})} defaults={DEFAULTS} />);
+    await userEvent.click(screen.getByRole("button", { name: "+ New Run" }));
+    expect(screen.getByLabelText("Capacity")).toHaveValue(14);
   });
 
   it("opens a form with the next Thursday prefilled", async () => {

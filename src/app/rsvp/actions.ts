@@ -6,7 +6,18 @@ import { and, eq, or } from "drizzle-orm";
 import { db } from "@/db";
 import { hasRoomSql } from "@/db/capacity";
 import { eventAttendees } from "@/db/schema";
+import { logPostHogServerAction } from "@/lib/posthogLogs";
+import { personDistinctId } from "@/lib/analytics";
 import { rsvpOpen } from "@/lib/rsvp";
+
+function logRsvpBlocked(reason: "full" | "closed", attendeeId: string, eventId: string) {
+  logPostHogServerAction("rsvp blocked", {
+    operation: "rsvp_blocked",
+    reason,
+    event_id: eventId,
+    attendee_id: attendeeId,
+  });
+}
 
 export type RsvpResult = "yes" | "no" | "full" | "closed" | "not_found";
 
@@ -25,6 +36,7 @@ export async function submitRsvp(
   // Runs that are archived, on or past their date, or already marked NO SHOW
   // feed Stats, so they're the organizers' to fix.
   if (!rsvpOpen(event) || attendee.inviteStatus === "no_show") {
+    logRsvpBlocked("closed", attendee.id, event.id);
     return "closed";
   }
 
@@ -45,10 +57,23 @@ export async function submitRsvp(
       ),
     )
     .returning();
-  if (updated.length === 0) return "full";
+  if (updated.length === 0) {
+    logRsvpBlocked("full", attendee.id, event.id);
+    return "full";
+  }
 
   revalidatePath(`/events/${event.id}`);
   revalidatePath("/stats");
+  logPostHogServerAction("rsvp submitted", {
+    operation: "submit_rsvp",
+    answer,
+    distinct_id: personDistinctId({
+      regularId: attendee.regularId,
+      attendeeId: attendee.id,
+    }),
+    event_id: event.id,
+    attendee_id: attendee.id,
+  });
   return answer;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import posthog from "posthog-js";
 import type { InviteStatus } from "@/db/schema";
 
 // Yes/No for the public RSVP page. Backing out after saying yes is the one
@@ -26,7 +27,11 @@ export function RsvpButtons({
   return (
     <>
       <div role="group" aria-label="Your RSVP" className="flex gap-4">
-        <form action={yesAction} className="flex-1">
+        <form
+          action={yesAction}
+          onSubmit={() => posthog.capture("rsvp_response_submitted", { response: "yes" })}
+          className="flex-1"
+        >
           <button
             type="submit"
             aria-pressed={confirmed}
@@ -40,7 +45,12 @@ export function RsvpButtons({
             {confirmed && <span aria-hidden="true">✓ </span>}Yes
           </button>
         </form>
-        <form ref={noForm} action={noAction} className="flex-1">
+        <form
+          ref={noForm}
+          action={noAction}
+          onSubmit={() => posthog.capture("rsvp_response_submitted", { response: "no" })}
+          className="flex-1"
+        >
           <button
             type={confirmed ? "button" : "submit"}
             onClick={confirmed ? () => setWarning(true) : undefined}

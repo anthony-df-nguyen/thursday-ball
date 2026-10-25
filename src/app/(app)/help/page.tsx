@@ -19,7 +19,7 @@ const steps = [
   },
   {
     title: "5. Watch the cap",
-    body: "Total headcount — confirmed people plus their +1s — is capped at 15. The app blocks confirming or adding a +1 once you're full.",
+    body: "Total headcount — confirmed people plus their +1s — is capped (14 by default; you can set it when creating a run). The app blocks confirming or adding a +1 once you're full. Need more room (or a different court)? Open the ⋯ menu and tap Edit run to change the cap or the location. The cap can't go below the number already in.",
   },
   {
     title: "6. Collect payment",
@@ -31,7 +31,7 @@ const steps = [
   },
   {
     title: "8. Mark no-shows",
-    body: 'If someone said yes but didn\'t come, tap their status and pick NO SHOW. Anyone still marked IN when the run happens counts as played in Stats, so only mark the people who bailed. A no-show stays on the run so you can see who flaked, doesn\'t count toward the 15 cap, and counts as a miss in Stats (the No-shows tab and no-show rate). If someone declined ahead of time, leave them as Declined instead — that isn\'t a no-show. Runs count in Stats once their date is today or earlier, archived or not.',
+    body: 'If someone said yes but didn\'t come, tap their status and pick NO SHOW. Anyone still marked IN when the run happens counts as played in Stats, so only mark the people who bailed. A no-show stays on the run so you can see who flaked, doesn\'t count toward the cap, and counts as a miss in Stats (the No-shows tab and no-show rate). If someone declined ahead of time, leave them as Declined instead — that isn\'t a no-show. Runs count in Stats once their date is today or earlier, archived or not.',
   },
 ];
 

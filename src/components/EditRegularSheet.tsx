@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import posthog from "posthog-js";
 import { Sheet } from "./Sheet";
 
 type Regular = {
@@ -64,6 +65,7 @@ export function EditRegularSheet({
           action={(formData) => {
             startTransition(async () => {
               await updateRegular(regular.id, formData);
+              posthog.capture("regular_updated");
               setOpen(false);
             });
           }}
@@ -106,6 +108,7 @@ export function EditRegularSheet({
             type="button"
             disabled={pending}
             onClick={() => {
+              posthog.capture("regular_removed");
               startTransition(async () => {
                 await deleteRegular(regular.id);
                 setOpen(false);

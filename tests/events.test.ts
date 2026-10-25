@@ -11,6 +11,7 @@ import {
   deleteRegular,
   getArchivedRuns,
   unarchiveEvent,
+  updateEvent,
 } from "@/app/(app)/actions";
 import { makeAttendee, makeEvent, makePlusOne, makeRegular, resetDb, seedOrganizer } from "./helpers";
 
@@ -54,6 +55,19 @@ describe("event lifecycle", () => {
       locationAddress: "1 Gym Way, Town",
     });
     expect(rows[1]).toMatchObject({ startTime: null, locationName: null, locationAddress: null });
+  });
+
+  it("createEvent saves the capacity from the form, and falls back to the default when invalid", async () => {
+    const ok = new FormData();
+    ok.set("date", "2026-11-05");
+    ok.set("capacity", "12");
+    await expect(createEvent(ok)).rejects.toThrow("NEXT_REDIRECT");
+    const bad = new FormData();
+    bad.set("date", "2026-11-12");
+    bad.set("capacity", "0");
+    await expect(createEvent(bad)).rejects.toThrow("NEXT_REDIRECT");
+    const rows = await db.select().from(events).orderBy(events.date);
+    expect(rows.map((r) => r.capacity)).toEqual([12, 15]);
   });
 
   it("archive hides the run and unarchive restores it", async () => {
@@ -136,5 +150,104 @@ describe("getArchivedRuns", () => {
     await makeAttendee(e.id, { displayName: "Decl" }, "declined");
     const [run] = (await getArchivedRuns(null)).runs;
     expect(run).toMatchObject({ headcount: 2, unpaid: 1 });
+  });
+});
+
+describe("updateEvent", () => {
+  const form = (capacity: string, name = "", address = "") => {
+    const fd = new FormData();
+    fd.set("capacity", capacity);
+    fd.set("locationName", name);
+    fd.set("locationAddress", address);
+    return fd;
+  };
+
+  it("updates capacity and location, trimming text", async () => {
+    const e = await makeEvent("2026-11-05");
+    await expect(updateEvent(e.id, form("20", "  New Gym ", " 2 Gym Way "))).resolves.toEqual({ ok: true });
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row).toMatchObject({ capacity: 20, locationName: "New Gym", locationAddress: "2 Gym Way" });
+  });
+
+  it("clears location when the fields are blank", async () => {
+    const e = await makeEvent("2026-11-05");
+    await db.update(events).set({ locationName: "Old", locationAddress: "Old St" }).where(eq(events.id, e.id));
+    await updateEvent(e.id, form("15"));
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row).toMatchObject({ locationName: null, locationAddress: null });
+  });
+
+  it("rejects a capacity that isn't a whole number from 1 to 99", async () => {
+    const e = await makeEvent("2026-11-05");
+    for (const bad of ["", "0", "-3", "2.5", "abc", "100"]) {
+      await expect(updateEvent(e.id, form(bad))).resolves.toEqual({ ok: false, error: "invalid" });
+    }
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row.capacity).toBe(15);
+  });
+
+  it("refuses capacity below the headcount (attendees and +1s) and changes nothing", async () => {
+    const e = await makeEvent("2026-11-05");
+    const a = await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    await makeAttendee(e.id, { displayName: "B" }, "confirmed");
+    await makePlusOne(a.id, "confirmed");
+    await expect(updateEvent(e.id, form("2", "Elsewhere"))).resolves.toEqual({
+      ok: false,
+      error: "capacity_below_headcount",
+    });
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row).toMatchObject({ capacity: 15, locationName: null });
+    await expect(updateEvent(e.id, form("3"))).resolves.toEqual({ ok: true });
+  });
+
+  it("doesn't count invited, declined or no-show people toward the floor", async () => {
+    const e = await makeEvent("2026-11-05");
+    await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    await makeAttendee(e.id, { displayName: "B" }, "invited");
+    await makeAttendee(e.id, { displayName: "C" }, "declined");
+    await makeAttendee(e.id, { displayName: "D" }, "no_show");
+    await expect(updateEvent(e.id, form("1"))).resolves.toEqual({ ok: true });
+  });
+
+  it("still lets the location change when capacity is unchanged and already below headcount", async () => {
+    const e = await makeEvent("2026-11-05", { capacity: 1 });
+    await makeAttendee(e.id, { displayName: "A" }, "confirmed");
+    await makeAttendee(e.id, { displayName: "B" }, "confirmed");
+    await expect(updateEvent(e.id, form("1", "Fixed Gym"))).resolves.toEqual({ ok: true });
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row.locationName).toBe("Fixed Gym");
+  });
+
+  it("is a no-op when nothing changed", async () => {
+    const e = await makeEvent("2026-11-05");
+    await expect(updateEvent(e.id, form("15"))).resolves.toEqual({ ok: true });
+  });
+
+  it("reports a missing run", async () => {
+    await expect(
+      updateEvent("00000000-0000-0000-0000-000000000000", form("10")),
+    ).resolves.toEqual({ ok: false, error: "not_found" });
+  });
+
+  it("works on archived runs and keeps them archived", async () => {
+    const e = await makeEvent("2026-11-05", { status: "closed" });
+    await updateEvent(e.id, form("12"));
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row).toMatchObject({ capacity: 12, status: "closed" });
+  });
+
+  it("leaves the date and time alone", async () => {
+    const e = await makeEvent("2026-11-05");
+    await db.update(events).set({ startTime: "20:00" }).where(eq(events.id, e.id));
+    await updateEvent(e.id, form("9"));
+    const [row] = await db.select().from(events).where(eq(events.id, e.id));
+    expect(row).toMatchObject({ date: "2026-11-05", startTime: "20:00" });
+  });
+
+  it("rejects when signed out", async () => {
+    const e = await makeEvent("2026-11-05");
+    const { auth } = await import("@/auth");
+    (auth as unknown as { mockResolvedValueOnce: (v: unknown) => void }).mockResolvedValueOnce(null);
+    await expect(updateEvent(e.id, form("9"))).rejects.toThrow("Not signed in");
   });
 });

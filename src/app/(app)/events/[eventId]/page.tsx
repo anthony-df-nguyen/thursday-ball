@@ -21,6 +21,7 @@ import {
   setPlusOneName,
   setPlusOnePaid,
   unarchiveEvent,
+  updateEvent,
 } from "../../actions";
 
 export default async function EventDetailPage({
@@ -142,6 +143,13 @@ export default async function EventDetailPage({
           archived={archived}
           allPaid={allPaid}
           unpaidCount={totalPeople - paidCount}
+          run={{
+            capacity: event.capacity,
+            locationName: event.locationName,
+            locationAddress: event.locationAddress,
+          }}
+          headcount={headcount}
+          updateEvent={updateEvent}
           deleteEvent={deleteEvent}
           archiveEvent={archiveEvent}
           unarchiveEvent={unarchiveEvent}

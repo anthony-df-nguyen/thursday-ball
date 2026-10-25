@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import posthog from "posthog-js";
 import { InfoTooltip } from "./InfoTooltip";
 import { Sheet } from "./Sheet";
 
@@ -44,6 +45,7 @@ export function AddPlayersPanel({
           if (!name) return;
           const formData = new FormData();
           formData.set("displayName", name);
+          posthog.capture("player_added", { player_type: "one_off", event_id: eventId });
           startTransition(() => addAdHocAttendee(eventId, formData));
           setOneOff("");
         }}
@@ -65,7 +67,10 @@ export function AddPlayersPanel({
           <button
             key={r.id}
             type="button"
-            onClick={() => startTransition(() => addRegularToEvent(eventId, r.id))}
+            onClick={() => {
+              posthog.capture("player_added", { player_type: "regular", event_id: eventId });
+              startTransition(() => addRegularToEvent(eventId, r.id));
+            }}
             className={`w-full flex items-center gap-2.5 bg-none border-t border-divider font-[inherit] text-sm font-semibold text-text cursor-pointer text-left px-0.5 py-1.5 hover:bg-bg/40 ${
               i === availableRegulars.length - 1 ? "border-b" : ""
             }`}

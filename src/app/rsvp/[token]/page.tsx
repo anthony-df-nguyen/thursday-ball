@@ -12,6 +12,10 @@ import { formatRunTime, mapsUrl } from "@/lib/runDetails";
 import { PAYEES, cashAppUrl, venmoUrl } from "@/lib/payment";
 import { rsvpOpen, runForToken } from "@/lib/rsvp";
 import { RsvpButtons } from "@/components/RsvpButtons";
+import { RsvpIdentify } from "@/components/RsvpIdentify";
+import { RsvpResultTracker } from "@/components/RsvpResultTracker";
+import { PaymentLink } from "@/components/PaymentLink";
+import { personDistinctId } from "@/lib/analytics";
 import { respond, type RsvpResult } from "../actions";
 
 // Only problems get a message; a successful yes/no is already shown by the
@@ -46,8 +50,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
+const RESULTS = ["yes", "no", "full", "closed", "not_found"];
+
+export default async function RsvpPage({
+  params,
+  searchParams,
+}: PageProps<"/rsvp/[token]">) {
   const { token } = await params;
+  const { r } = await searchParams;
+  const result = typeof r === "string" && RESULTS.includes(r) ? r : undefined;
 
   // Not a uuid -> can't match a token (and would error in Postgres).
   if (!/^[0-9a-f-]{36}$/i.test(token)) notFound();
@@ -122,6 +133,16 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 py-8 md:py-16">
+      <RsvpIdentify
+        distinctId={personDistinctId({
+          regularId: attendee.regularId,
+          attendeeId: attendee.id,
+        })}
+        eventId={event.id}
+        attendeeId={attendee.id}
+        isOrganizer={attendee.regular?.isOrganizer ?? false}
+      />
+      <RsvpResultTracker result={result} />
       <div>
         <p className="text-[10px] tracking-[0.1em] uppercase text-accent font-semibold">
           RSVP to Basketball
@@ -293,14 +314,9 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
                       Venmo
                     </dt>
                     <dd>
-                      <a
-                        href={venmoUrl(p.venmo)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-accent underline"
-                      >
+                      <PaymentLink href={venmoUrl(p.venmo)} method="venmo">
                         @{p.venmo}
-                      </a>
+                      </PaymentLink>
                     </dd>
                   </div>
                 )}
@@ -318,14 +334,9 @@ export default async function RsvpPage({ params }: PageProps<"/rsvp/[token]">) {
                       Cash App
                     </dt>
                     <dd>
-                      <a
-                        href={cashAppUrl(p.cashApp)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-accent underline"
-                      >
+                      <PaymentLink href={cashAppUrl(p.cashApp)} method="cash_app">
                         {p.cashApp}
-                      </a>
+                      </PaymentLink>
                     </dd>
                   </div>
                 )}

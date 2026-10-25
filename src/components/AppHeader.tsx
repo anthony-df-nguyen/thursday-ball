@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { NAV_ITEMS, isNavItemActive } from "./BottomNav";
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
 
 function initialsOf(name: string | null | undefined) {
   if (!name) return "?";
@@ -13,11 +18,17 @@ function initialsOf(name: string | null | undefined) {
 }
 
 export function AppHeader({
+  userId,
+  analyticsId,
   userName,
+  userEmail,
   userImage,
   signOutAction,
 }: {
+  userId: string;
+  analyticsId: string;
   userName: string | null | undefined;
+  userEmail: string | null | undefined;
   userImage: string | null | undefined;
   signOutAction: () => Promise<void>;
 }) {
@@ -27,6 +38,23 @@ export function AppHeader({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const identifiedUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isPostHogConfigured) return;
+
+    if (identifiedUserId.current && identifiedUserId.current !== analyticsId) {
+      posthog.reset();
+    }
+
+    posthog.identify(analyticsId, {
+      user_id: userId,
+      is_organizer: true,
+      ...(userEmail ? { email: userEmail } : {}),
+      ...(userName ? { name: userName } : {}),
+    });
+    identifiedUserId.current = analyticsId;
+  }, [analyticsId, userEmail, userId, userName]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -110,7 +138,12 @@ export function AppHeader({
             >
               Settings
             </Link>
-            <form action={signOutAction}>
+            <form
+              action={signOutAction}
+              onSubmit={() => {
+                if (isPostHogConfigured) posthog.reset();
+              }}
+            >
               <button
                 type="submit"
                 role="menuitem"

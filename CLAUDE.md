@@ -6,7 +6,12 @@ This file carries the product spec for this repo so any Claude Code session work
 
 ## Current state of the repo
 
-v1 scaffold is in place: Next.js 16 (App Router, TypeScript, Tailwind v4), Auth.js (NextAuth v5) with Google OAuth gated by `ORGANIZER_EMAILS`, Drizzle ORM schema for Neon Postgres, and working pages for login, events list, roster, and event detail (invite status, +1s, payment toggles, capacity enforcement, delete-when-paid). See `README.md` for setup steps and `src/db/schema.ts` for the data model. From here, work is refinement/iteration on top of that scaffold, not starting from scratch.
+v1 is built and in use, and the PRD below describes what exists today (not the original plan). Work now is refinement on top of it.
+
+- **Organizer app** (behind Google login, mobile-first with a desktop layout): Runs list (open runs, plus archived runs paged in on demand), run detail, Roster, Stats, Settings (each organizer's default invite text), Profile, and a Help page with the how-to steps.
+- **Public RSVP page** (`/rsvp/[token]`, no login): each attendee gets a private link to answer yes/no, see the run details, and find payment options.
+- **Analytics:** PostHog on the client and server; see the Analytics section below.
+- **Stack:** Next.js 16 (App Router, TypeScript, Tailwind v4), Auth.js (NextAuth v5) with Google OAuth gated by `ORGANIZER_EMAILS`, Drizzle ORM on Neon Postgres. See `README.md` for setup and `src/db/schema.ts` for the data model.
 
 Note: this repo is on **Next.js 16**, which renamed Middleware to **Proxy** (`src/proxy.ts`, not `middleware.ts` — same functionality). Check `node_modules/next/dist/docs/` before assuming an older Next.js convention applies.
 
@@ -19,103 +24,122 @@ Vitest suite in `tests/` (details in `tests/README.md`). It needs `docker compos
 - Run `npm test` (plus `npx tsc --noEmit` and `npm run lint`) before calling work done, and report failures honestly.
 - If you add or rename test files, or the suite's coverage meaningfully changes, update the coverage table in `tests/README.md`.
 
+## Analytics (PostHog)
+
+`docs/analytics.md` lists every PostHog event (client `posthog.capture` calls and server-side `logPostHogServerAction` logs), what each one tells us, and the identity setup.
+
+- **Every new PostHog event must be documented in `docs/analytics.md` in the same change**: add a row with the event name, its properties, and the insight it gives us. The same goes for renaming or removing an event, or changing its properties. The doc must always match what the code actually sends. Update its "Known gaps" section too if coverage changes.
+- Identify people by stable ids only, never names, and never put an RSVP token in an event.
+
 ---
 
 # Product Requirements Document
 
-**Status:** v1 spec, all open questions resolved
+**Status:** v1 shipped; this reflects what the app does today
 **Owner:** Anthony
-**Last updated:** 2026-08-19
+**Last updated:** 2026-10-25
+
+Keep this section in sync with the code as behavior changes.
 
 ## 1. Summary
 
-A mobile-first web app for a friend group to organize pickup basketball ("ball") sessions. Three organizers create events, invite people from a shared roster of regulars (including themselves, since organizers play too), track RSVPs and +1s, cap total headcount at 15, and track payment for both regulars and their +1s — deleting the event once everyone's paid.
+A mobile-first web app for a friend group to organize pickup basketball ("ball") runs. Three organizers create runs, invite people from a shared roster of regulars (including themselves, since organizers play too), track RSVPs and +1s, cap total headcount (14 by default on the New Run form), and track payment for both regulars and their +1s. Invited players answer yes/no through a private link; they never log in. When a run is over, the organizers archive it (it still counts in stats) or delete it if it never happened.
 
 ## 2. Goals
 
-- Make it fast, on a phone, to stand up a new event and see who's in.
+- Make it fast, on a phone, to stand up a new run and see who's in.
 - Keep a reusable roster of regulars so organizers aren't re-typing names every week.
+- Let players answer for themselves with one tap, without accounts.
 - Make payment collection visible at a glance — for regulars *and* their +1s — so nothing falls through the cracks.
-- Keep the data model and UI dead simple — this is a tool for ~15-20 people, not a scheduling platform.
+- Show simple attendance stats (runs played, no-shows) from real history.
+- Keep the data model and UI simple — this is a tool for ~15-20 people, not a scheduling platform.
 
 ## 3. Users & Roles
 
-- **Organizer** (3 people, fixed for now): full control — create/edit/delete events, manage the regulars roster, add/remove anyone from an event, toggle invite status and payment status, add/remove +1s. Organizers are also regulars themselves — `organizer` is a flag on a person, not a separate category of person. They show up in the same roster and can be added to events as attendees like anyone else.
-- **Player**: any of the regulars (organizers included), or a one-off/+1 who gets added to a specific event.
+- **Organizer** (3 people, fixed): full control — create/edit/archive/delete runs, manage the regulars roster, add/remove anyone from a run, set invite status and payment status, add/remove +1s, view stats. Organizers are also regulars themselves — `isOrganizer` is a flag on a roster entry, not a separate kind of person.
+- **Player**: any regular (organizers included), or a one-off/+1 added to a specific run. Players never log in. A player with an RSVP link can answer yes/no for themselves on the public RSVP page and nothing else.
 
-**Auth:** Google OAuth (Gmail login) via NextAuth, restricted to the 3 organizers via an allowlist of Gmail addresses stored in an environment variable (e.g. `ORGANIZER_EMAILS="a@gmail.com,b@gmail.com,c@gmail.com"`), checked at sign-in — anyone else's Google login is rejected. This is fully organizer-operated for v1 — non-organizer players never log in at all; they're just roster entries the organizers manage. All invites, RSVP tracking, and payment status happen via the organizers texting/talking to people outside the app and then updating the app themselves.
+**Auth:** Google OAuth (Gmail login) via Auth.js, restricted to the organizers by the `ORGANIZER_EMAILS` env var allowlist, checked at sign-in. Everything except `/login`, the auth routes and `/rsvp/*` requires a signed-in organizer (`src/proxy.ts`). On first sign-in an organizer's `users` row and linked `regulars` row are created.
 
-## 4. Core Concepts / Data Model
+## 4. Data Model
 
-### 4.1 User (login accounts — organizers only)
-- id, name, email (from Google), avatar
-- Only the 3 organizers have `User` accounts / ever authenticate. Non-organizer players never log in, so they don't need a `User` record at all — just a `Regular` entry (below).
+See `src/db/schema.ts` for the source of truth.
 
-### 4.2 Regular (roster of people we typically play with)
-- id, name, nickname/short name, phone (optional, for reference), `is_organizer` flag, notes (optional)
-- Purpose: fast re-add to events via a picker list, avoid retyping names. Includes the 3 organizers alongside everyone else — an organizer's `Regular` entry links to their `User` account (so they can log in), while everyone else's `Regular` entry has no linked account.
+### 4.1 User (organizers only)
+- id, email, name, image, `defaultInviteMessage` (optional; falls back to the app default in `src/lib/inviteMessage.ts`).
 
-### 4.3 Event
-- id, date, status (`open` | `closed`/paid-off), created_by (organizer), created_at
-- No location field for now — it's always the same spot.
-- Capacity: hard cap of **15 total headcount**, where headcount = confirmed regulars/players **plus** any +1s they're bringing. A confirmed regular with 2 +1s counts as 3 toward the cap.
-- Ends one of two ways: **archived** (status `closed`, just hidden from the main list) or **deleted** (true hard delete, cascades everything). Stats are computed live from every run dated today or earlier, archived or not: `confirmed` counts as played, `no_show` as a miss. Deleting a run removes it from stats. Archived runs stay editable and can be unarchived.
+### 4.2 Regular (the roster)
+- id, name, nickname, phone (optional; enables the text-invite button), notes, `isOrganizer`, `userId` (set only for organizers, linking to their login).
+- Deleting a regular copies their name onto their past attendee rows first, so their history stays visible and counted in stats.
 
-### 4.4 EventAttendee (join table: Event ↔ Regular, or ad-hoc name)
-- id, event_id, regular_id (nullable — allows one-off names not in the roster), display_name (used if not a regular)
-- `invite_status`: `invited` (waiting on response) → `confirmed` (going) or `declined` (can't make it). Organizer manually sets this; no notifications sent in v1. `declined` keeps the record visible so organizers know not to ask again, without counting toward the 15.
-- `paid`: boolean (this person's own payment)
+### 4.3 Event (a "run")
+- id, `date`, optional `startTime` ("HH:MM"), optional `locationName` and `locationAddress`, `status` (`open` | `closed`), `capacity` (set on the New Run form, which defaults to 14; the column default is 15), `archivedAt`, `createdBy`.
+- Ends one of two ways: **archived** (`closed`, hidden from the main list but still editable, can be unarchived) or **deleted** (hard delete, cascades everything, removes it from stats).
+- Stats are computed live from every run dated today or earlier, archived or not.
 
-### 4.5 PlusOne (each +1 tracked individually, tied to an attendee)
-- id, event_attendee_id, `name` (optional, free text — e.g. "John's friend Mike"), `paid`: boolean
-- Modeled as individual rows (not just a count) specifically so each +1's payment can be tracked separately — a regular bringing 2 +1s might have one paid and one not. A +1 doesn't need to be a `Regular` — just a slot with its own optional name and paid flag.
-- Adding/removing a +1 = adding/removing a row.
+### 4.4 EventAttendee (Event ↔ Regular, or an ad-hoc name)
+- id, event, `regularId` (null for a one-off name), `displayName` (for one-offs), `inviteStatus`, `paid`, `rsvpToken`.
+- A given regular can appear only once per run.
+- `inviteStatus`: `invited` (shown as ASKED) → `confirmed` (IN) or `declined` (OUT). After the run, `no_show` (said yes but didn't play) is also available. Organizers set it by hand; players can set yes/no themselves via the RSVP page.
+- `rsvpToken`: an unguessable uuid. The link is the credential for the public RSVP page, and it only ever touches that one attendee's yes/no.
 
-### 4.6 Capacity math (resolved)
-The 15-cap is **total headcount**: every `confirmed` attendee counts as 1, plus 1 for each of their +1 rows. `declined` and `invited` (not yet confirmed) don't count toward the cap. UI should show a running total (e.g. "12 / 15") and block confirming a new attendee or adding a +1 once at 15.
+### 4.5 PlusOne (tracked individually, tied to an attendee)
+- id, attendee, optional `name`, `inviteStatus`, `paid`.
+- A +1 has its **own** invite status, independent of the person bringing them. New +1s start as `invited` and don't count toward capacity until confirmed.
+
+### 4.6 Capacity
+- Headcount = confirmed attendees + confirmed +1s. `invited`, `declined` and `no_show` don't count.
+- The cap is enforced in a single conditional SQL statement (`src/db/capacity.ts`), so there's no window between checking and writing. Organizers can't confirm past the cap, and the status chip skips Confirm when the run is full. A player's "Yes" on the RSVP page is refused when full.
 
 ## 5. Key User Flows
 
-1. **Create an event** — organizer picks a date, event is created in `open` status.
-2. **Build the invite list** — organizer opens the regulars roster (organizers included), taps to add people to the event as `invited`. Can also add a one-off name not in the roster.
-3. **Track responses** — organizer manually flips each attendee to `confirmed` or `declined` as people respond (via text/group chat, outside the app). `declined` attendees stay visible on the event so organizers remember they already asked and got a no.
-4. **Add +1s** — for any confirmed attendee, organizer adds/removes individual +1 rows.
-5. **Enforce the cap** — UI blocks confirming a new attendee (or adding a +1) once total headcount hits 15.
-6. **Track payment** — organizer taps a checkbox per attendee *and* per +1 to mark paid/unpaid. Event view shows "X of Y paid" across everyone, including +1s.
-7. **Archive the event** — after the run, organizer removes people who didn't play or sets them to `no_show`, then archives the event once everyone's paid (manual, with a confirmation) to hide it from the main list. The Stats page already counts it. Deleting instead removes it permanently, stats included.
+1. **Create a run** — organizer picks a date, and optionally a start time, location and capacity. The form is prefilled with the usual time, place and a capacity of 14 (`runDefaults()` in `src/lib/runDetails.ts`, overridable via `DEFAULT_RUN_TIME`, `DEFAULT_RUN_CAPACITY`, `DEFAULT_LOCATION_NAME`, `DEFAULT_LOCATION_ADDRESS`). It starts `open`.
+2. **Build the invite list** — add regulars from the roster (as `invited`) or type a one-off name. Organizers are on the roster like everyone else.
+3. **Invite** — the message icon opens the organizer's phone text app (`sms:`) pre-filled with their default invite text plus the person's RSVP link. The app sends nothing itself.
+4. **Track responses** — players answer on the RSVP page, or organizers set the status by hand (tap to cycle before the run; a menu of every status after it). Declined people stay visible so nobody gets asked twice.
+5. **Add +1s** — organizers add and remove individual +1 rows, optionally named, each with its own status and paid flag.
+6. **Enforce the cap** — see 4.6.
+7. **Track payment** — a checkbox per confirmed attendee and per confirmed +1, with an "X of Y paid" summary.
+   - **Edit a run** — the ⋯ menu's "Edit run" changes capacity and location name/address (also on archived runs). Capacity must be 1–99 and can't go below the current headcount (checked inside the UPDATE, so a simultaneous confirm can't slip past); an unchanged capacity is always allowed. Saving with no changes does nothing.
+8. **After the run** — mark people who bailed as `no_show`; leave advance declines as Declined. Then archive the run (with a confirmation that notes anyone still unpaid). Delete instead only if the run never happened.
+9. **Stats** — pick Everyone or a player: runs held per month, average players per run, per-player runs played, no-shows, no-show rate, last played, and paged run history with paid status.
+
+### 5.1 Public RSVP page (`/rsvp/[token]`)
+- Shows the player's name, the run's date/time/location (with a Map link), how many spots are filled, and their current answer.
+- Yes/No buttons. Changing a Yes to a No asks for confirmation first.
+- Answers are accepted only while the run is open and its date is today or later (`src/lib/rsvp.ts`). After that the page shows a "closed" notice and only organizers can change statuses, since Stats counts those runs. Someone marked `no_show` can't change their answer.
+- Payment options (Venmo, Zelle, Cash App) per payee, configured in `src/lib/payment.ts`.
+- The link preview (Open Graph) shows the date only, never names.
+- Players cannot add +1s here; they're told to text an organizer.
+- An unknown or malformed token is a 404.
 
 ## 6. Non-Functional Requirements
 
-- **Mobile-first**: primary usage is on phones in a web browser (not a native app). Layouts, tap targets, and flows should be designed mobile-first; desktop is a nice-to-have, not the target.
-- **Fast interactions**: adding/removing people and +1s, and toggling invite/payment status, should feel instant (optimistic UI updates).
-- **Small, closed group**: no public sign-up flow needed; access can be limited to known Google accounts if desired (allowlist by email domain or explicit list).
+- **Mobile-first**: used mostly on phones in a browser. A desktop layout exists, but phones are the target.
+- **Fast interactions**: adding/removing people and +1s and toggling status/payment feel instant (server actions with transitions and a frozen row order so lists don't jump).
+- **Small, closed group**: no public sign-up; organizers are allowlisted by email, and players only ever hold their own private link.
+- **Privacy in analytics**: PostHog gets stable ids only, never names, and never an RSVP token (see the Analytics section).
 
 ## 7. Tech Stack
 
-- **Frontend/Framework:** Next.js (App Router) + Tailwind CSS
-- **Auth:** NextAuth.js (Auth.js v5) with Google provider
-- **Database:** Neon (serverless Postgres)
+- **Frontend/Framework:** Next.js 16 (App Router) + Tailwind CSS v4
+- **Auth:** Auth.js v5 with the Google provider
+- **Database:** Neon (serverless Postgres); local dev uses Docker Postgres
 - **ORM:** Drizzle
+- **Analytics:** PostHog (client `posthog-js`, plus server-side logs)
 - **Hosting:** Vercel
+- **Env vars:** `DATABASE_URL`, `ORGANIZER_EMAILS`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_SECRET`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`, `NEXT_PUBLIC_POSTHOG_HOST`, and optionally `APP_URL` (the base URL used in RSVP links; otherwise taken from the request host) and the `DEFAULT_RUN_*`/`DEFAULT_LOCATION_*` overrides above.
 
-## 8. Out of Scope (v1)
+## 8. Out of Scope
 
-- Real notifications/SMS/email invites (organizer handles invites via existing group chat; app is just the tracker)
-- Payment processing/integration (Venmo, etc.) — just paid/unpaid flags
-- Self-service RSVP by non-organizer players — fully organizer-operated for v1, confirmed
-- Recurring event templates / auto-scheduling
-- Location/venue tracking (always the same spot for now)
-- Streaks, attendance-rate-vs-invited, and other advanced stats — v1 stats are runs played per month and no-show rate, derived live from past runs, archived or not
+- The app sending SMS/email itself (organizers send the pre-filled text from their own phone)
+- Payment processing/integration — just paid/unpaid flags and links to pay
+- Player accounts or logins — players only have their private RSVP link
+- Players adding their own +1s
+- Recurring run templates / auto-scheduling
+- Editing a run's date or time after creating it (not built yet; capacity and location are editable)
+- Streaks, attendance-rate-vs-invited, and other advanced stats — stats are runs played per month, no-shows and no-show rate, derived live from past runs
 
 ## 9. Open Questions
 
-None outstanding — all resolved during PRD review. Log new decisions here as they come up during implementation.
-
-## 10. Suggested Build Order (v1)
-
-1. Auth (Google OAuth via NextAuth, gated by `ORGANIZER_EMAILS` allowlist env var) + seed the 3 organizer `User`/`Regular` records
-2. Regulars roster CRUD (organizers included)
-3. Event CRUD (create/list/delete)
-4. Event detail: add/remove attendees from roster or ad-hoc, invite/confirm/decline toggle, +1 add/remove (with optional name), 15-headcount-cap enforcement
-5. Payment checkboxes for attendees and +1s + "X of Y paid" summary
-6. Delete-event flow with confirmation once fully paid
+None outstanding. Log new decisions here as they come up.
